@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dokumentasi API — RAMZZPAY</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <a href="/" style="text-decoration:none;color:inherit;">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-text">RAMZZ<span class="highlight">PAY</span></span>
+        </a>
+      </div>
+      <nav>
+        <a href="/">Beranda</a>
+        <a href="/docs">Dokumentasi</a>
+      </nav>
+    </header>
+
+    <main class="docs">
+      <h1>📖 Dokumentasi API</h1>
+      <p>Base URL: <code>https://ramzzpay.vercel.app</code> (atau <code>http://localhost:3000</code> untuk development)</p>
+
+      <!-- Auth -->
+      <section>
+        <h2>🔑 Autentikasi</h2>
+        <p>Semua request wajib menyertakan API Key melalui header:</p>
+        <pre><code>x-api-key: rahasia_super_aman_123</code></pre>
+        <p>Atau via query parameter:</p>
+        <pre><code>?api_key=rahasia_super_aman_123</code></pre>
+      </section>
+
+      <!-- OrderKouta -->
+      <section>
+        <h2>📱 OrderKouta</h2>
+
+        <div class="doc-item">
+          <h3>Request OTP</h3>
+          <div class="doc-meta">
+            <span class="method post">POST</span>
+            <code>/api/orderkouta/get-otp</code>
+          </div>
+          <h4>Body (JSON):</h4>
+          <pre><code>{
+  "username": "0821xxxxxx",
+  "password": "password_akun_orderkouta"
+}</code></pre>
+          <h4>Response Sukses:</h4>
+          <pre><code>{
+  "status": true,
+  "message": "OTP dikirim ke 0821xxxxxx",
+  "otp_method": "WhatsApp"
+}</code></pre>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Verifikasi OTP</h3>
+          <div class="doc-meta">
+            <span class="method post">POST</span>
+            <code>/api/orderkouta/verify-otp</code>
+          </div>
+          <h4>Body (JSON):</h4>
+          <pre><code>{
+  "otp": "123456"
+}</code></pre>
+          <h4>Response Sukses:</h4>
+          <pre><code>{
+  "status": true,
+  "message": "Login berhasil",
+  "data": {
+    "name": "Nama Reseller",
+    "saldo": 500000,
+    "token": "abc123..."
+  }
+}</code></pre>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Mutasi QRIS</h3>
+          <div class="doc-meta">
+            <span class="method get">GET</span>
+            <code>/api/orderkouta/mutasi?page=1</code>
+          </div>
+          <h4>Response Sukses:</h4>
+          <pre><code>{
+  "status": true,
+  "data": {
+    "account": { "saldo": 500000, "nama": "..." },
+    "mutasi": [
+      {
+        "tanggal": "2024-12-20",
+        "jumlah": 10000,
+        "keterangan": "Pembayaran QRIS"
+      }
+    ]
+  }
+}</code></pre>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Profile</h3>
+          <div class="doc-meta">
+            <span class="method get">GET</span>
+            <code>/api/orderkouta/profile</code>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Logout</h3>
+          <div class="doc-meta">
+            <span class="method post">POST</span>
+            <code>/api/orderkouta/logout</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Pakasir -->
+      <section>
+        <h2>💳 Pakasir</h2>
+
+        <div class="doc-item">
+          <h3>Buat Transaksi</h3>
+          <div class="doc-meta">
+            <span class="method post">POST</span>
+            <code>/api/pakasir/create</code>
+          </div>
+          <h4>Body (JSON):</h4>
+          <pre><code>{
+  "project": "slug_proyek_anda",
+  "order_id": "INV-001",
+  "amount": 10000,
+  "pakasir_api_key": "api_key_pakasir_anda"
+}</code></pre>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Cek Status</h3>
+          <div class="doc-meta">
+            <span class="method get">GET</span>
+            <code>/api/pakasir/check?project=xxx&order_id=INV-001&amount=10000&pakasir_api_key=xxx</code>
+          </div>
+        </div>
+
+        <br>
+
+        <div class="doc-item">
+          <h3>Batalkan Transaksi</h3>
+          <div class="doc-meta">
+            <span class="method post">POST</span>
+            <code>/api/pakasir/cancel</code>
+          </div>
+          <h4>Body (JSON):</h4>
+          <pre><code>{
+  "project": "slug_proyek_anda",
+  "order_id": "INV-001",
+  "amount": 10000,
+  "pakasir_api_key": "api_key_pakasir_anda"
+}</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>© 2024 <strong>RAMZZPAY</strong> • <a href="/">Kembali ke Beranda</a></p>
+    </footer>
+  </div>
+</body>
+</html>
