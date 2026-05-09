@@ -5,39 +5,31 @@ const fs = require('fs');
 const path = require('path');
 
 // =============================================
-// STORAGE: Memory (Vercel) atau File (Local)
+// STORAGE
 // =============================================
 let store;
 let isVercel;
 
-// Dipanggil dari index.js via app.set()
 router.use((req, res, next) => {
   if (!store) {
     isVercel = req.app.get('isVercel');
     if (isVercel) {
       store = req.app.get('memoryStore');
     } else {
-      // File-based storage buat local
       const DATA_DIR = path.join(__dirname, 'data');
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
       const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
-      
       store = {
         getSession(apiKey) {
           try {
             if (!fs.existsSync(SESSION_FILE)) return null;
-            const sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-            return sessions[apiKey] || null;
+            return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'))[apiKey] || null;
           } catch { return null; }
         },
         setSession(apiKey, data) {
           try {
             let sessions = {};
-            if (fs.existsSync(SESSION_FILE)) {
-              sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-            }
+            if (fs.existsSync(SESSION_FILE)) sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
             sessions[apiKey] = data;
             fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
           } catch {}
@@ -56,29 +48,18 @@ router.use((req, res, next) => {
   next();
 });
 
-// Helper functions
 function getSession(apiKey) {
   return isVercel ? store.sessions[apiKey] || null : store.getSession(apiKey);
 }
-
 function setSession(apiKey, data) {
-  if (isVercel) {
-    store.sessions[apiKey] = data;
-  } else {
-    store.setSession(apiKey, data);
-  }
+  isVercel ? store.sessions[apiKey] = data : store.setSession(apiKey, data);
 }
-
 function deleteSession(apiKey) {
-  if (isVercel) {
-    delete store.sessions[apiKey];
-  } else {
-    store.deleteSession(apiKey);
-  }
+  isVercel ? delete store.sessions[apiKey] : store.deleteSession(apiKey);
 }
 
 // =============================================
-// ORDERKOUTA CLIENT
+// HELPER
 // =============================================
 const OK_URL = 'https://app.orderkuota.com/api/v2';
 
@@ -104,20 +85,36 @@ function getBody(extra = {}) {
   }).toString();
 }
 
+// Ambil param dari body (POST) atau query (GET)
+function getParams(req) {
+  return {
+    username: req.body?.username || req.query?.username || '',
+    password: req.body?.password || req.query?.password || '',
+    otp: req.body?.otp || req.query?.otp || ''
+  };
+}
+
 // =============================================
-// POST /api/orderkouta/get-otp
+// GET/POST /api/orderkouta/get-otp
+// Bisa lewat URL langsung atau form
 // =============================================
-router.post('/get-otp', async (req, res) => {
-  const { username, password } = req.body;
-  const apiKey = req.headers['x-api-key'];
+router.all('/get-otp', async (req, res) => {
+  const { username, password } = getParams(req);
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
 
   if (!username || !password) {
-    return res.status(400).json({ status: false, message: 'username dan password wajib' });
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: username, password'
+    });
   }
 
   const session = getSession(apiKey);
   if (session?.authenticated) {
-    return res.status(400).json({ status: false, message: 'Sudah login. Logout dulu.' });
+    return res.json({
+      status: false,
+      message: 'Sudah login. Buka /logout dulu kalo mau login ulang.'
+    });
   }
 
   try {
@@ -143,38 +140,65 @@ router.post('/get-otp', async (req, res) => {
         authenticated: false,
         createdAt: new Date().toISOString()
       });
+
       return res.json({
         status: true,
-        message: `OTP dikirim ke ${data.results?.otp_value || username}`
+        message: `OTP terkirim ke ${data.results?.otp_value || username}`,
+        next_step: `/api/orderkouta/verify-otp?otp=KODE_OTP_KAMU`
       });
     }
 
-    return res.status(400).json({ status: false, message: data.message || 'Gagal request OTP' });
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'Gagal kirim OTP'
+    });
+
   } catch (err) {
-    return res.status(502).json({ status: false, message: 'Server OrderKouta error: ' + err.message });
+    return res.status(502).json({
+      status: false,
+      message: 'Server OrderKouta error: ' + err.message
+    });
   }
 });
 
 // =============================================
-// POST /api/orderkouta/verify-otp
+// GET/POST /api/orderkouta/verify-otp
 // =============================================
-router.post('/verify-otp', async (req, res) => {
-  const { otp } = req.body;
-  const apiKey = req.headers['x-api-key'];
+router.all('/verify-otp', async (req, res) => {
+  const { otp } = getParams(req);
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
 
-  if (!otp) return res.status(400).json({ status: false, message: 'OTP wajib' });
+  if (!otp) {
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: otp'
+    });
+  }
 
   const session = getSession(apiKey);
-  if (!session?.otpSent) return res.status(400).json({ status: false, message: 'Request OTP dulu' });
-  if (session.authenticated) return res.status(400).json({ status: false, message: 'Sudah login' });
+  if (!session?.otpSent) {
+    return res.status(400).json({
+      status: false,
+      message: 'Belum request OTP. Buka /get-otp dulu.'
+    });
+  }
+
+  if (session.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Sudah login. Buka /logout dulu kalo mau login ulang.'
+    });
+  }
 
   try {
-    const response = await axios.post(`${OK_URL}/login`, getBody({ username: session.username, password: otp }), {
-      headers: getHeaders(session.cookies),
-      timeout: 15000
-    });
+    const response = await axios.post(
+      `${OK_URL}/login`,
+      getBody({ username: session.username, password: otp }),
+      { headers: getHeaders(session.cookies), timeout: 15000 }
+    );
 
     const data = response.data;
+
     if (data.success && data.results?.token) {
       setSession(apiKey, {
         ...session,
@@ -187,18 +211,26 @@ router.post('/verify-otp', async (req, res) => {
 
       return res.json({
         status: true,
-        message: 'Login berhasil!',
+        message: `Login berhasil! Selamat datang ${data.results.name || session.username}`,
         data: {
           name: data.results.name,
           user_id: data.results.id,
           saldo: data.results.saldo || 0
-        }
+        },
+        next_step: '/api/orderkouta/mutasi'
       });
     }
 
-    return res.status(400).json({ status: false, message: data.message || 'OTP salah' });
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'OTP salah atau expired'
+    });
+
   } catch (err) {
-    return res.status(502).json({ status: false, message: 'Error: ' + err.message });
+    return res.status(502).json({
+      status: false,
+      message: 'Error: ' + err.message
+    });
   }
 });
 
@@ -206,9 +238,15 @@ router.post('/verify-otp', async (req, res) => {
 // GET /api/orderkouta/profile
 // =============================================
 router.get('/profile', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
   const session = getSession(apiKey);
-  if (!session?.authenticated) return res.status(401).json({ status: false, message: 'Belum login' });
+
+  if (!session?.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Belum login. Buka /get-otp dulu.'
+    });
+  }
 
   return res.json({
     status: true,
@@ -225,11 +263,16 @@ router.get('/profile', (req, res) => {
 // GET /api/orderkouta/mutasi
 // =============================================
 router.get('/mutasi', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
   const page = parseInt(req.query.page) || 1;
 
   const session = getSession(apiKey);
-  if (!session?.authenticated) return res.status(401).json({ status: false, message: 'Belum login' });
+  if (!session?.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Belum login. Buka /get-otp dulu.'
+    });
+  }
 
   try {
     const body = getBody({
@@ -241,34 +284,50 @@ router.get('/mutasi', async (req, res) => {
       'requests[qris_history][jumlah]': ''
     });
 
-    const response = await axios.post(`${OK_URL}/qris/mutasi/${session.userId}`, body, {
-      headers: getHeaders(session.cookies),
-      timeout: 15000
-    });
+    const response = await axios.post(
+      `${OK_URL}/qris/mutasi/${session.userId}`,
+      body,
+      { headers: getHeaders(session.cookies), timeout: 15000 }
+    );
 
     const data = response.data;
+
     if (data.success) {
       return res.json({
         status: true,
         data: {
           account: data.account?.results || {},
-          mutasi: data.qris_history?.results || []
+          mutasi: data.qris_history?.results || [],
+          page: page
         }
       });
     }
 
-    return res.status(400).json({ status: false, message: 'Gagal ambil mutasi' });
+    return res.status(400).json({
+      status: false,
+      message: 'Gagal ambil mutasi'
+    });
+
   } catch (err) {
-    return res.status(502).json({ status: false, message: 'Error: ' + err.message });
+    return res.status(502).json({
+      status: false,
+      message: 'Error: ' + err.message
+    });
   }
 });
 
 // =============================================
-// POST /api/orderkouta/logout
+// GET/POST /api/orderkouta/logout
 // =============================================
-router.post('/logout', (req, res) => {
-  deleteSession(req.headers['x-api-key']);
-  res.json({ status: true, message: 'Logout berhasil' });
+router.all('/logout', (req, res) => {
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  deleteSession(apiKey);
+
+  res.json({
+    status: true,
+    message: 'Logout berhasil. Silakan login ulang.',
+    next_step: '/api/orderkouta/get-otp?username=NOMOR&password=PASS'
+  });
 });
 
 module.exports = router;
