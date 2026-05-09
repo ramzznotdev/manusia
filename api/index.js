@@ -109,9 +109,8 @@ app.use('/api/orderkouta', ok);
 app.use('/api/pakasir', pakasirRoutes);
 
 // Pages
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'index.html')));
-app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, '..', 'docs.html')));
-
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/docs', (req, res) => res.sendFile(path.join(__dirname, 'docs.html')));
 // 404
 app.use((req, res) => res.status(404).json({ status: false, message: 'Not found' }));
 
