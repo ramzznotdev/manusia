@@ -3,866 +3,1128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAMZZPAY — Dashboard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>API Docs - RAMZZPAY</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <style>
-    :root {
-      --bg: #0a0a0f;
-      --card: #12121a;
-      --border: #1e293b;
-      --text: #e2e8f0;
-      --muted: #64748b;
-      --primary: #8b5cf6;
-      --primary2: #3b82f6;
-      --grad: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      --green: #10b981;
-      --red: #ef4444;
-    }
-
-    * {
+    /* ==========================================
+       RAMZZPAY API DOCS - Dark Blue Theme
+       ========================================== */
+    
+    *, *::before, *::after {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    :root {
+      --bg-primary: #080c14;
+      --bg-secondary: #0d1320;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2236;
+      --bg-code: #0d1117;
+      --border: #1a2a44;
+      --border-light: #243452;
+      --text-primary: #e8edf5;
+      --text-secondary: #9aafc9;
+      --text-muted: #546a8a;
+      --accent: #3b82f6;
+      --accent-light: #60a5fa;
+      --accent-dark: #1d4ed8;
+      --accent-glow: rgba(59, 130, 246, 0.5);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.1);
+      --success-border: rgba(16, 185, 129, 0.3);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.1);
+      --danger-border: rgba(239, 68, 68, 0.3);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.1);
+      --warning-border: rgba(245, 158, 11, 0.3);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Particle Background */
-    #particles {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
-
-    /* Layout */
-    .app {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
       display: flex;
       min-height: 100vh;
-      position: relative;
-      z-index: 1;
     }
 
-    /* Sidebar */
+    /* ---------- Scrollbar ---------- */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+
+    /* ==========================================
+       SIDEBAR
+       ========================================== */
     .sidebar {
-      width: 260px;
-      background: rgba(18, 18, 26, 0.95);
+      width: 280px;
+      min-height: 100vh;
+      background: var(--bg-secondary);
       border-right: 1px solid var(--border);
-      padding: 20px;
+      padding: 24px;
       position: fixed;
       top: 0;
       left: 0;
-      height: 100vh;
+      bottom: 0;
       overflow-y: auto;
-      z-index: 10;
-      backdrop-filter: blur(10px);
+      z-index: 100;
+      transition: transform 0.4s ease;
     }
 
-    .sidebar .logo {
-      font-size: 22px;
-      font-weight: 900;
-      margin-bottom: 30px;
-      background: var(--grad);
+    .sidebar-logo {
+      font-size: 1.3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-light), var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 32px;
+      letter-spacing: -0.5px;
     }
 
-    .sidebar nav a {
+    .sidebar-section {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .sidebar-link {
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 12px 16px;
-      color: var(--muted);
+      padding: 10px 12px;
+      color: var(--text-secondary);
       text-decoration: none;
-      border-radius: 10px;
-      margin-bottom: 6px;
-      transition: 0.2s;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all var(--transition);
+      margin-bottom: 2px;
+    }
+
+    .sidebar-link:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .sidebar-link.active {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-light);
+    }
+
+    .sidebar-link .method-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      min-width: 38px;
+      text-align: center;
+    }
+
+    .method-badge.get {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .method-badge.post {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent-light);
+    }
+
+    .method-badge.all {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    /* Sidebar Toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 200;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
+      font-size: 1.2rem;
     }
 
-    .sidebar nav a:hover,
-    .sidebar nav a.active {
-      background: rgba(139, 92, 246, 0.15);
-      color: #fff;
+    .sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 99;
     }
 
-    .sidebar .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      display: inline-block;
-      margin-right: 8px;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%,
-      100% {
-        opacity: 1;
-      }
-      50% {
-        opacity: 0.4;
-      }
-    }
-
-    /* Main Content */
+    /* ==========================================
+       MAIN CONTENT
+       ========================================== */
     .main {
-      margin-left: 260px;
+      margin-left: 280px;
       flex: 1;
-      padding: 30px;
+      padding: 48px;
+      max-width: 1000px;
+      width: 100%;
     }
 
-    /* Header */
-    .header {
+    .section {
+      margin-bottom: 64px;
+      padding-top: 24px;
+    }
+
+    .section h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .section > p {
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+
+    /* ---------- Endpoint Card ---------- */
+    .endpoint-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+
+    .endpoint-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
-    }
-
-    .header h1 {
-      font-size: 24px;
-    }
-
-    .header .clock {
-      font-family: monospace;
-      font-size: 16px;
-      color: var(--muted);
-      background: var(--card);
-      padding: 8px 16px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-
-    /* Cards */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
-      margin-bottom: 30px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
     }
 
-    .stat-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
+    .endpoint-method {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .endpoint-method.get {
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid var(--success-border);
+    }
+
+    .endpoint-method.post {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent-light);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .endpoint-method.all {
+      background: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid var(--warning-border);
+    }
+
+    .endpoint-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .endpoint-body {
       padding: 20px;
     }
 
-    .stat-card .icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      margin-bottom: 12px;
+    .endpoint-body p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 16px;
     }
 
-    .stat-card .icon.purple {
-      background: rgba(139, 92, 246, 0.2);
-      color: #8b5cf6;
-    }
-    .stat-card .icon.blue {
-      background: rgba(59, 130, 246, 0.2);
-      color: #3b82f6;
-    }
-    .stat-card .icon.green {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
-    }
-    .stat-card .icon.yellow {
-      background: rgba(245, 158, 11, 0.2);
-      color: #f59e0b;
+    /* ---------- Params Table ---------- */
+    .params-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 0.85rem;
     }
 
-    .stat-card .value {
-      font-size: 24px;
+    .params-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .params-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(26, 42, 68, 0.5);
+    }
+
+    .params-table code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent-light);
+      background: rgba(59, 130, 246, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .required-badge {
+      font-size: 0.65rem;
       font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--danger-bg);
+      color: var(--danger);
+      text-transform: uppercase;
     }
 
-    .stat-card .label {
-      color: var(--muted);
-      font-size: 13px;
+    .optional-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(100, 116, 139, 0.2);
+      color: var(--text-muted);
+      text-transform: uppercase;
     }
 
-    /* Sections */
-    .section {
+    /* ---------- Code Block ---------- */
+    .code-block {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin: 16px 0;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .code-block pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: var(--text-primary);
+    }
+
+    .code-block .key {
+      color: var(--accent-light);
+    }
+
+    .code-block .string {
+      color: #a5d6ff;
+    }
+
+    .code-block .number {
+      color: #f9a8d4;
+    }
+
+    .code-block .boolean {
+      color: #fbbf24;
+    }
+
+    .code-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* ---------- Response Box ---------- */
+    .response-box {
+      background: var(--bg-code);
+      border: 1px solid var(--success-border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 16px;
       display: none;
     }
-    .section.active {
+
+    .response-box.show {
       display: block;
+      animation: fadeIn 0.3s ease;
     }
 
-    .card {
-      background: var(--card);
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .response-box pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--success);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ---------- Try It Form ---------- */
+    .try-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .try-form input,
+    .try-form select {
+      background: var(--bg-primary);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 20px;
+      color: var(--text-primary);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      transition: border-color var(--transition);
     }
 
-    .card h2 {
-      margin-bottom: 16px;
-      font-size: 18px;
-    }
-
-    /* Form */
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: #fff;
-      font-size: 14px;
+    .try-form input:focus,
+    .try-form select:focus {
       outline: none;
-      transition: 0.2s;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
 
-    .form-group input:focus {
-      border-color: var(--primary);
+    .try-form input::placeholder {
+      color: var(--text-muted);
     }
 
     .btn {
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 14px;
-      cursor: pointer;
-      border: none;
-      transition: 0.2s;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      font-family: inherit;
     }
 
     .btn-primary {
-      background: var(--grad);
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
     }
 
     .btn-primary:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+      box-shadow: 0 4px 25px var(--accent-glow);
+      transform: translateY(-2px);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      color: #fff;
-      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
     }
 
     .btn-danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+    }
+
+    .btn-danger:hover {
       background: rgba(239, 68, 68, 0.2);
-      color: #ef4444;
     }
 
     .btn-success {
-      background: rgba(16, 185, 129, 0.2);
-      color: #10b981;
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid var(--success-border);
     }
 
-    /* Table */
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .btn-sm {
+      padding: 6px 16px;
+      font-size: 0.8rem;
     }
 
-    th,
-    td {
-      padding: 12px 16px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-
-    th {
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    td .amount {
-      font-weight: 600;
-    }
-    td .amount.in {
-      color: var(--green);
-    }
-    td .amount.out {
-      color: var(--red);
-    }
-
-    /* QR Section */
-    .qr-container {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    .qr-code {
-      background: #fff;
-      padding: 16px;
-      border-radius: 12px;
-      display: inline-block;
-    }
-
-    .qr-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    /* Toast */
-    .toast {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 16px 20px;
-      border-radius: 12px;
-      z-index: 999;
-      animation: slideIn 0.3s ease;
+    /* ---------- Token Display ---------- */
+    .token-display {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.05));
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 16px;
       display: none;
     }
 
-    .toast.show {
+    .token-display.show {
       display: block;
     }
-    .toast.success {
-      border-color: var(--green);
-    }
-    .toast.error {
-      border-color: var(--red);
+
+    .token-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent-light);
+      word-break: break-all;
+      background: var(--bg-code);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      margin: 8px 0;
     }
 
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+    /* ---------- Status Indicator ---------- */
+    .status-success {
+      color: var(--success);
+    }
+    .status-error {
+      color: var(--danger);
+    }
+    .status-warning {
+      color: var(--warning);
     }
 
-    /* Responsive */
-    @media (max-width: 768px) {
+    /* ==========================================
+       RESPONSIVE
+       ========================================== */
+    @media (max-width: 900px) {
       .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        padding: 16px;
+        transform: translateX(-100%);
       }
-      .sidebar nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
+
+      .sidebar.open {
+        transform: translateX(0);
       }
-      .sidebar nav a {
-        padding: 8px 12px;
-        font-size: 12px;
+
+      .sidebar-backdrop.show {
+        display: block;
       }
+
+      .sidebar-toggle {
+        display: block;
+      }
+
       .main {
         margin-left: 0;
-        padding: 16px;
-      }
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+        padding: 24px;
+        padding-top: 70px;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Particle Background -->
-  <canvas id="particles"></canvas>
+  <!-- Sidebar Toggle (Mobile) -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">
+    &#9776;
+  </button>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <!-- Toast -->
-  <div id="toast" class="toast"></div>
+  <!-- ==========================================
+       SIDEBAR
+       ========================================== -->
+  <aside class="sidebar" id="sidebar">
+    <a href="/" class="sidebar-logo">RAMZZPAY</a>
 
-  <div class="app">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="logo">⚡ RAMZZPAY</div>
-      <nav>
-        <a onclick="showSection('dashboard')" class="active" id="nav-dashboard">
-          <i class="fas fa-th-large"></i> Dashboard
-        </a>
-        <a onclick="showSection('login')" id="nav-login">
-          <i class="fas fa-sign-in-alt"></i> Login OTP
-        </a>
-        <a onclick="showSection('mutasi')" id="nav-mutasi">
-          <i class="fas fa-history"></i> Mutasi QRIS
-        </a>
-        <a onclick="showSection('qris')" id="nav-qris">
-          <i class="fas fa-qrcode"></i> QR Generator
-        </a>
-        <a onclick="showSection('pakasir')" id="nav-pakasir">
-          <i class="fas fa-wallet"></i> Pakasir
-        </a>
-        <a onclick="showSection('profile')" id="nav-profile">
-          <i class="fas fa-user"></i> Profile
-        </a>
-      </nav>
-      <div style="position:absolute;bottom:20px;color:var(--muted);font-size:12px;">
-        <span class="status-dot"></span> System Online
-      </div>
-    </aside>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Authentication</div>
+      <a href="#auth-section" class="sidebar-link active">
+        <span class="method-badge all">ANY</span> Login & Token
+      </a>
+    </div>
 
-    <!-- Main Content -->
-    <main class="main">
-      <!-- Header -->
-      <div class="header">
-        <h1 id="page-title">Dashboard</h1>
-        <div class="clock" id="clock">--:--:--</div>
-      </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">OrderKouta</div>
+      <a href="#ok-get-otp" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Get OTP
+      </a>
+      <a href="#ok-verify-otp" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Verify OTP
+      </a>
+      <a href="#ok-profile" class="sidebar-link">
+        <span class="method-badge get">GET</span> Profile
+      </a>
+      <a href="#ok-mutasi" class="sidebar-link">
+        <span class="method-badge get">GET</span> Mutasi
+      </a>
+      <a href="#ok-logout" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Logout
+      </a>
+    </div>
 
-      <!-- ==================== DASHBOARD SECTION ==================== -->
-      <div id="section-dashboard" class="section active">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="icon purple"><i class="fas fa-coins"></i></div>
-            <div class="value" id="saldo-display">Rp 0</div>
-            <div class="label">Saldo Aktif</div>
-          </div>
-          <div class="stat-card">
-            <div class="icon blue"><i class="fas fa-exchange-alt"></i></div>
-            <div class="value" id="total-mutasi">0</div>
-            <div class="label">Total Mutasi Hari Ini</div>
-          </div>
-          <div class="stat-card">
-            <div class="icon green"><i class="fas fa-check-circle"></i></div>
-            <div class="value" id="login-status">Belum Login</div>
-            <div class="label">Status Akun</div>
-          </div>
-          <div class="stat-card">
-            <div class="icon yellow"><i class="fas fa-clock"></i></div>
-            <div class="value" id="last-update">-</div>
-            <div class="label">Update Terakhir</div>
-          </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Pakasir</div>
+      <a href="#pk-create" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Create
+      </a>
+      <a href="#pk-check" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Check
+      </a>
+      <a href="#pk-cancel" class="sidebar-link">
+        <span class="method-badge all">ANY</span> Cancel
+      </a>
+      <a href="#pk-methods" class="sidebar-link">
+        <span class="method-badge get">GET</span> Methods
+      </a>
+    </div>
+  </aside>
+
+  <!-- ==========================================
+       MAIN CONTENT
+       ========================================== -->
+  <main class="main">
+
+    <!-- ==========================================
+         AUTHENTICATION SECTION
+         ========================================== -->
+    <section class="section" id="auth-section">
+      <h2>Authentication -- Login & Token</h2>
+      <p>Dapatkan token dengan login ke OrderKouta. Token disimpan otomatis di sesi server.</p>
+
+      <!-- Login Form -->
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/orderkouta/get-otp</span>
         </div>
-
-        <div class="card">
-          <h2>🚀 Quick Actions</h2>
-          <p style="color:var(--muted);margin-bottom:16px;">Pilih menu di sidebar untuk mulai.</p>
-          <button class="btn btn-primary" onclick="showSection('login')">
-            <i class="fas fa-sign-in-alt"></i> Login Dulu
-          </button>
-        </div>
-      </div>
-
-      <!-- ==================== LOGIN SECTION ==================== -->
-      <div id="section-login" class="section">
-        <div class="card" style="max-width:500px;">
-          <h2>🔐 Login OrderKouta</h2>
-          <div class="form-group">
-            <label>Username (Nomor HP)</label>
-            <input type="text" id="login-username" placeholder="0821xxxxxx">
+        <div class="endpoint-body">
+          <p>Kirim OTP ke WhatsApp/nomor terdaftar.</p>
+          
+          <div class="try-form">
+            <input type="text" id="loginUsername" placeholder="Username / Email / Nomor HP">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button class="btn btn-primary" onclick="getOTP()">Kirim OTP</button>
           </div>
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="login-password" placeholder="Password akun">
-          </div>
-          <button class="btn btn-primary" onclick="requestOTP()">
-            <i class="fas fa-paper-plane"></i> Kirim OTP
-          </button>
-
-          <hr style="border-color:var(--border);margin:20px 0;">
-
-          <div class="form-group">
-            <label>Kode OTP</label>
-            <input type="text" id="login-otp" placeholder="123456">
-          </div>
-          <button class="btn btn-success" onclick="verifyOTP()">
-            <i class="fas fa-check"></i> Verifikasi
-          </button>
-
-          <div id="login-result" style="margin-top:16px;font-size:14px;"></div>
+          <div id="otpResponse" class="response-box"><pre></pre></div>
         </div>
       </div>
 
-      <!-- ==================== MUTASI SECTION ==================== -->
-      <div id="section-mutasi" class="section">
-        <div class="card">
-          <h2>📋 Riwayat Mutasi QRIS</h2>
-          <button class="btn btn-primary" onclick="loadMutasi()" style="margin-bottom:16px;">
-            <i class="fas fa-sync"></i> Refresh
-          </button>
-          <div style="overflow-x:auto;">
-            <table>
-              <thead>
-                <tr><th>Tanggal</th><th>Jumlah</th><th>Keterangan</th><th>Status</th></tr>
-              </thead>
-              <tbody id="mutasi-table">
-                <tr><td colspan="4" style="text-align:center;color:var(--muted);">Login dulu buat liat mutasi</td></tr>
-              </tbody>
-            </table>
+      <!-- Verify OTP -->
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/orderkouta/verify-otp</span>
+        </div>
+        <div class="endpoint-body">
+          <p>Verifikasi kode OTP yang diterima.</p>
+          
+          <div class="try-form">
+            <input type="text" id="otpCode" placeholder="Kode OTP (6 digit)">
+            <button class="btn btn-success" onclick="verifyOTP()">Verifikasi & Login</button>
+          </div>
+          <div id="verifyResponse" class="response-box"><pre></pre></div>
+          <div id="tokenDisplay" class="token-display">
+            <strong>Token Aktif:</strong>
+            <div class="token-value" id="tokenValue">-</div>
+            <button class="btn btn-danger btn-sm" onclick="logout()" style="margin-top:8px;">Logout</button>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- ==================== QR SECTION ==================== -->
-      <div id="section-qris" class="section">
-        <div class="card">
-          <h2>📱 QRIS Generator</h2>
-          <div class="qr-container">
-            <div>
-              <div class="form-group">
-                <label>Nominal (Rp)</label>
-                <input type="number" id="qris-nominal" placeholder="10000" value="10000">
-              </div>
-              <button class="btn btn-primary" onclick="generateQR()">
-                <i class="fas fa-qrcode"></i> Generate QR
-              </button>
-              <div class="qr-actions" style="margin-top:16px;">
-                <button class="btn btn-secondary" onclick="copyQRIS()">
-                  <i class="fas fa-copy"></i> Copy
-                </button>
-                <button class="btn btn-secondary" onclick="downloadQR()">
-                  <i class="fas fa-download"></i> Download
-                </button>
-              </div>
-            </div>
-            <div>
-              <div id="qris-preview" style="background:#fff;padding:16px;border-radius:12px;min-width:200px;min-height:200px;display:flex;align-items:center;justify-content:center;color:#000;">
-                QR Code
-              </div>
-            </div>
+    <!-- ==========================================
+         ORDERKOUTA ENDPOINTS
+         ========================================== -->
+    
+    <!-- Verify OTP Endpoint Docs -->
+    <section class="section" id="ok-verify-otp">
+      <h2>Verify OTP</h2>
+      <p>Endpoint untuk verifikasi kode OTP.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/orderkouta/verify-otp</span>
+        </div>
+        <div class="endpoint-body">
+          <table class="params-table">
+            <thead>
+              <tr><th>Parameter</th><th>Tipe</th><th>Wajib</th><th>Deskripsi</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>otp</code></td>
+                <td>String</td>
+                <td><span class="required-badge">Wajib</span></td>
+                <td>Kode OTP 6 digit</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="code-label">Contoh Response</div>
+          <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this, 'verify-response')">Copy</button>
+            <pre id="verify-response">{
+  <span class="key">"status"</span>: <span class="boolean">true</span>,
+  <span class="key">"message"</span>: <span class="string">"Login berhasil! Selamat datang, Username"</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"name"</span>: <span class="string">"Username"</span>,
+    <span class="key">"user_id"</span>: <span class="string">"12345"</span>,
+    <span class="key">"saldo"</span>: <span class="number">500000</span>
+  },
+  <span class="key">"next"</span>: <span class="string">"/api/orderkouta/mutasi"</span>
+}</pre>
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- ==================== PAKASIR SECTION ==================== -->
-      <div id="section-pakasir" class="section">
-        <div class="card" style="max-width:500px;">
-          <h2>💳 Buat Transaksi Pakasir</h2>
-          <div class="form-group">
-            <label>Slug Proyek</label>
-            <input type="text" id="pakasir-project" placeholder="slug_proyek">
+    <!-- Mutasi Endpoint -->
+    <section class="section" id="ok-mutasi">
+      <h2>Mutasi / Riwayat</h2>
+      <p>Ambil data mutasi transaksi.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method get">GET</span>
+          <span class="endpoint-path">/api/orderkouta/mutasi</span>
+        </div>
+        <div class="endpoint-body">
+          <table class="params-table">
+            <thead>
+              <tr><th>Parameter</th><th>Tipe</th><th>Wajib</th><th>Deskripsi</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>page</code></td>
+                <td>Number</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Halaman (default: 1)</td>
+              </tr>
+              <tr>
+                <td><code>keterangan</code></td>
+                <td>String</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Filter keterangan</td>
+              </tr>
+              <tr>
+                <td><code>dari</code></td>
+                <td>String</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Tanggal mulai (YYYY-MM-DD)</td>
+              </tr>
+              <tr>
+                <td><code>ke</code></td>
+                <td>String</td>
+                <td><span class="optional-badge">Optional</span></td>
+                <td>Tanggal akhir (YYYY-MM-DD)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="try-form">
+            <input type="text" placeholder="page (default: 1)" id="mutasiPage">
+            <input type="text" placeholder="keterangan (optional)" id="mutasiKet">
+            <input type="text" placeholder="dari (YYYY-MM-DD)" id="mutasiDari">
+            <input type="text" placeholder="ke (YYYY-MM-DD)" id="mutasiKe">
+            <button class="btn btn-primary" onclick="getMutasi()">Ambil Mutasi</button>
           </div>
-          <div class="form-group">
-            <label>Order ID</label>
-            <input type="text" id="pakasir-orderid" placeholder="INV-001">
-          </div>
-          <div class="form-group">
-            <label>Amount</label>
-            <input type="number" id="pakasir-amount" placeholder="10000">
-          </div>
-          <div class="form-group">
-            <label>API Key Pakasir</label>
-            <input type="text" id="pakasir-apikey" placeholder="api_key_pakasir">
-          </div>
-          <button class="btn btn-primary" onclick="createPakasir()">
-            <i class="fas fa-paper-plane"></i> Buat Transaksi
-          </button>
-          <div id="pakasir-result" style="margin-top:16px;font-size:14px;"></div>
+          <div id="mutasiResponse" class="response-box"><pre></pre></div>
         </div>
       </div>
+    </section>
 
-      <!-- ==================== PROFILE SECTION ==================== -->
-      <div id="section-profile" class="section">
-        <div class="card" style="max-width:500px;">
-          <h2>👤 Profile Akun</h2>
-          <div id="profile-content">
-            <p style="color:var(--muted);">Login dulu buat liat profile</p>
+    <!-- ==========================================
+         PAKASIR ENDPOINTS
+         ========================================== -->
+    
+    <!-- Create Transaction -->
+    <section class="section" id="pk-create">
+      <h2>Buat Transaksi</h2>
+      <p>Membuat transaksi pembayaran baru via Pakasir.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/pakasir/create</span>
+        </div>
+        <div class="endpoint-body">
+          <table class="params-table">
+            <thead>
+              <tr><th>Parameter</th><th>Tipe</th><th>Wajib</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>project</code></td>
+                <td>String</td>
+                <td><span class="required-badge">Wajib</span></td>
+              </tr>
+              <tr>
+                <td><code>order_id</code></td>
+                <td>String</td>
+                <td><span class="required-badge">Wajib</span></td>
+              </tr>
+              <tr>
+                <td><code>amount</code></td>
+                <td>Number</td>
+                <td><span class="required-badge">Wajib</span></td>
+              </tr>
+              <tr>
+                <td><code>pakasir_api_key</code></td>
+                <td>String</td>
+                <td><span class="required-badge">Wajib</span></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="try-form">
+            <input type="text" placeholder="Project" id="pkProject">
+            <input type="text" placeholder="Order ID (contoh: INV-001)" id="pkOrderId">
+            <input type="number" placeholder="Amount" id="pkAmount">
+            <input type="text" placeholder="Pakasir API Key" id="pkApiKey">
+            <button class="btn btn-primary" onclick="createTransaction()">Buat Transaksi</button>
           </div>
-          <button class="btn btn-danger" onclick="logout()" style="margin-top:16px;">
-            <i class="fas fa-sign-out-alt"></i> Logout
-          </button>
+          <div id="createResponse" class="response-box"><pre></pre></div>
         </div>
       </div>
+    </section>
 
-    </main>
-  </div>
+    <!-- Check Transaction -->
+    <section class="section" id="pk-check">
+      <h2>Cek Transaksi</h2>
+      <p>Cek status transaksi yang sudah dibuat.</p>
 
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/pakasir/check</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="try-form">
+            <input type="text" placeholder="Project" id="pkCheckProject">
+            <input type="text" placeholder="Order ID" id="pkCheckOrderId">
+            <input type="number" placeholder="Amount" id="pkCheckAmount">
+            <input type="text" placeholder="Pakasir API Key" id="pkCheckApiKey">
+            <button class="btn btn-primary" onclick="checkTransaction()">Cek Status</button>
+          </div>
+          <div id="checkResponse" class="response-box"><pre></pre></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cancel Transaction -->
+    <section class="section" id="pk-cancel">
+      <h2>Batalkan Transaksi</h2>
+      <p>Batalkan transaksi yang pending.</p>
+
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method all">ANY</span>
+          <span class="endpoint-path">/api/pakasir/cancel</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="try-form">
+            <input type="text" placeholder="Project" id="pkCancelProject">
+            <input type="text" placeholder="Order ID" id="pkCancelOrderId">
+            <input type="number" placeholder="Amount" id="pkCancelAmount">
+            <input type="text" placeholder="Pakasir API Key" id="pkCancelApiKey">
+            <button class="btn btn-danger" onclick="cancelTransaction()">Batalkan</button>
+          </div>
+          <div id="cancelResponse" class="response-box"><pre></pre></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Payment Methods -->
+    <section class="section" id="pk-methods">
+      <h2>Metode Pembayaran</h2>
+      <div class="endpoint-card">
+        <div class="endpoint-header">
+          <span class="endpoint-method get">GET</span>
+          <span class="endpoint-path">/api/pakasir/methods</span>
+        </div>
+        <div class="endpoint-body">
+          <button class="btn btn-secondary" onclick="getMethods()">Ambil Metode</button>
+          <div id="methodsResponse" class="response-box"><pre></pre></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================
+       SCRIPTS
+       ========================================== -->
   <script>
-    // =============================================
-    // CONFIG
-    // =============================================
-    const API_BASE = window.location.origin;
-    const API_KEY = 'rahasia_super_aman_123';
+    // Sidebar mobile toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
 
-    // =============================================
-    // PARTICLE BACKGROUND
-    // =============================================
-    const canvas = document.getElementById('particles');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = [];
-    for (let i = 0; i < 60; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.5 + 0.5,
-        dx: (Math.random() - 0.5) * 0.3,
-        dy: (Math.random() - 0.5) * 0.3
-      });
-    }
-
-    function animateParticles() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(139, 92, 246, 0.4)';
-        ctx.fill();
-        p.x += p.dx;
-        p.y += p.dy;
-        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-      });
-      requestAnimationFrame(animateParticles);
-    }
-    animateParticles();
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      sidebarBackdrop.classList.toggle('show');
     });
 
-    // =============================================
-    // CLOCK
-    // =============================================
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('clock').textContent = now.toLocaleTimeString('id-ID');
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    sidebarBackdrop.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarBackdrop.classList.remove('show');
+    });
 
-    // =============================================
-    // TOAST
-    // =============================================
-    function showToast(msg, type = 'success') {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.className = 'toast show ' + type;
-      setTimeout(() => t.classList.remove('show'), 3000);
-    }
+    // Active sidebar link
+    document.querySelectorAll('.sidebar-link').forEach(link => {
+      link.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        if (window.innerWidth <= 900) {
+          sidebar.classList.remove('open');
+          sidebarBackdrop.classList.remove('show');
+        }
+      });
+    });
 
-    // =============================================
-    // NAVIGATION
-    // =============================================
-    function showSection(name) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-
-      const section = document.getElementById('section-' + name);
-      if (section) section.classList.add('active');
-
-      const navItem = document.getElementById('nav-' + name);
-      if (navItem) navItem.classList.add('active');
-
-      const titles = {
-        dashboard: 'Dashboard',
-        login: 'Login OTP',
-        mutasi: 'Mutasi QRIS',
-        qris: 'QR Generator',
-        pakasir: 'Pakasir',
-        profile: 'Profile'
-      };
-      document.getElementById('page-title').textContent = titles[name] || name;
+    // Copy code function
+    function copyCode(btn, elementId) {
+      const pre = document.getElementById(elementId);
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
     }
 
-    // =============================================
-    // API CALLS
-    // =============================================
-    async function requestOTP() {
-      const username = document.getElementById('login-username').value;
-      const password = document.getElementById('login-password').value;
-      const resultDiv = document.getElementById('login-result');
+    // Helper: Show response
+    function showResponse(elementId, data) {
+      const box = document.getElementById(elementId);
+      box.querySelector('pre').textContent = JSON.stringify(data, null, 2);
+      box.classList.add('show');
+    }
 
+    // API base URL
+    const BASE = '';
+
+    // ==========================================
+    // ORDERKOUTA FUNCTIONS
+    // ==========================================
+    async function getOTP() {
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      
       if (!username || !password) {
-        showToast('Username & password wajib!', 'error');
+        showResponse('otpResponse', { status: false, message: 'Username dan password wajib diisi' });
         return;
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/orderkouta/get-otp?api_key=${API_KEY}&username=${username}&password=${password}`);
+        const res = await fetch(`${BASE}/api/orderkouta/get-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
         const data = await res.json();
-
-        if (data.status) {
-          resultDiv.innerHTML = '<span style="color:#10b981;">✅ ' + data.message + '</span>';
-          showToast('OTP Terkirim!', 'success');
-        } else {
-          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + data.message + '</span>';
-          showToast(data.message, 'error');
-        }
+        showResponse('otpResponse', data);
       } catch (err) {
-        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek ke server</span>';
-        showToast('Gagal konek', 'error');
+        showResponse('otpResponse', { status: false, message: 'Error: ' + err.message });
       }
     }
 
     async function verifyOTP() {
-      const otp = document.getElementById('login-otp').value;
-      const resultDiv = document.getElementById('login-result');
-
+      const otp = document.getElementById('otpCode').value;
+      
       if (!otp) {
-        showToast('Kode OTP wajib!', 'error');
+        showResponse('verifyResponse', { status: false, message: 'Kode OTP wajib diisi' });
         return;
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/orderkouta/verify-otp?api_key=${API_KEY}&otp=${otp}`);
+        const res = await fetch(`${BASE}/api/orderkouta/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ otp })
+        });
         const data = await res.json();
-
+        showResponse('verifyResponse', data);
+        
         if (data.status) {
-          resultDiv.innerHTML = '<span style="color:#10b981;">✅ Login sukses! Welcome, ' + (data.data?.name || 'User') + '</span>';
-          document.getElementById('login-status').textContent = 'Logged In';
-          document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
-          showToast('Login Berhasil!', 'success');
-          loadProfile();
-        } else {
-          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + data.message + '</span>';
-          showToast(data.message, 'error');
+          document.getElementById('tokenDisplay').classList.add('show');
+          document.getElementById('tokenValue').textContent = data.data?.token || 'Token aktif';
         }
       } catch (err) {
-        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek ke server</span>';
+        showResponse('verifyResponse', { status: false, message: 'Error: ' + err.message });
       }
-    }
-
-    async function loadMutasi() {
-      const tableBody = document.getElementById('mutasi-table');
-      tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
-
-      try {
-        const res = await fetch(`${API_BASE}/api/orderkouta/mutasi?api_key=${API_KEY}&page=1`);
-        const data = await res.json();
-
-        if (data.status && data.data?.mutasi?.length > 0) {
-          tableBody.innerHTML = data.data.mutasi.map(m => `
-            <tr>
-              <td>${m.tanggal || '-'}</td>
-              <td><span class="amount in">Rp ${Number(m.jumlah || 0).toLocaleString()}</span></td>
-              <td>${m.keterangan || '-'}</td>
-              <td>✅ Sukses</td>
-            </tr>
-          `).join('');
-          document.getElementById('total-mutasi').textContent = data.data.mutasi.length;
-          document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
-        } else {
-          tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Belum ada mutasi atau belum login</td></tr>';
-        }
-      } catch (err) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--red);">Gagal load data</td></tr>';
-      }
-    }
-
-    async function loadProfile() {
-      try {
-        const res = await fetch(`${API_BASE}/api/orderkouta/profile?api_key=${API_KEY}`);
-        const data = await res.json();
-
-        if (data.status) {
-          document.getElementById('profile-content').innerHTML = `
-            <p><strong>Nama:</strong> ${data.data.name}</p>
-            <p><strong>User ID:</strong> ${data.data.user_id}</p>
-            <p><strong>Saldo:</strong> Rp ${Number(data.data.saldo || 0).toLocaleString()}</p>
-            <p><strong>Username:</strong> ${data.data.username}</p>
-          `;
-          document.getElementById('saldo-display').textContent = 'Rp ' + Number(data.data.saldo || 0).toLocaleString();
-        }
-      } catch (err) {}
     }
 
     async function logout() {
       try {
-        await fetch(`${API_BASE}/api/orderkouta/logout?api_key=${API_KEY}`);
-        document.getElementById('login-status').textContent = 'Belum Login';
-        document.getElementById('profile-content').innerHTML = '<p style="color:var(--muted);">Login dulu buat liat profile</p>';
-        document.getElementById('saldo-display').textContent = 'Rp 0';
-        showToast('Logout berhasil!', 'success');
-      } catch (err) {}
+        const res = await fetch(`${BASE}/api/orderkouta/logout`, { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('tokenDisplay').classList.remove('show');
+        showResponse('verifyResponse', data);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
-    async function createPakasir() {
-      const project = document.getElementById('pakasir-project').value;
-      const orderId = document.getElementById('pakasir-orderid').value;
-      const amount = document.getElementById('pakasir-amount').value;
-      const pakasirKey = document.getElementById('pakasir-apikey').value;
-      const resultDiv = document.getElementById('pakasir-result');
+    async function getMutasi() {
+      const page = document.getElementById('mutasiPage').value || '1';
+      const keterangan = document.getElementById('mutasiKet').value;
+      const dari = document.getElementById('mutasiDari').value;
+      const ke = document.getElementById('mutasiKe').value;
 
-      if (!project || !orderId || !amount || !pakasirKey) {
-        showToast('Semua field wajib!', 'error');
+      let params = `?page=${page}`;
+      if (keterangan) params += `&keterangan=${encodeURIComponent(keterangan)}`;
+      if (dari) params += `&dari=${encodeURIComponent(dari)}`;
+      if (ke) params += `&ke=${encodeURIComponent(ke)}`;
+
+      try {
+        const res = await fetch(`${BASE}/api/orderkouta/mutasi${params}`);
+        const data = await res.json();
+        showResponse('mutasiResponse', data);
+      } catch (err) {
+        showResponse('mutasiResponse', { status: false, message: 'Error: ' + err.message });
+      }
+    }
+
+    // ==========================================
+    // PAKASIR FUNCTIONS
+    // ==========================================
+    async function createTransaction() {
+      const project = document.getElementById('pkProject').value;
+      const order_id = document.getElementById('pkOrderId').value;
+      const amount = document.getElementById('pkAmount').value;
+      const pakasir_api_key = document.getElementById('pkApiKey').value;
+
+      if (!project || !order_id || !amount || !pakasir_api_key) {
+        showResponse('createResponse', { status: false, message: 'Semua parameter wajib diisi' });
         return;
       }
 
       try {
-        const res = await fetch(`${API_BASE}/api/pakasir/create`, {
+        const res = await fetch(`${BASE}/api/pakasir/create`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-          body: JSON.stringify({ project, order_id: orderId, amount: Number(amount), pakasir_api_key: pakasirKey })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project, order_id, amount: parseInt(amount), pakasir_api_key })
         });
         const data = await res.json();
-
-        if (data.status) {
-          resultDiv.innerHTML = '<span style="color:#10b981;">✅ Transaksi dibuat! Total: Rp ' + Number(data.data?.total_payment || 0).toLocaleString() + '</span>';
-          showToast('Transaksi Berhasil!', 'success');
-        } else {
-          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.message || 'Gagal') + '</span>';
-        }
+        showResponse('createResponse', data);
       } catch (err) {
-        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek</span>';
+        showResponse('createResponse', { status: false, message: 'Error: ' + err.message });
       }
     }
 
-    function generateQR() {
-      const nominal = document.getElementById('qris-nominal').value || 10000;
-      const qrisString = '00020101021226670016COM.QRIS.WWW011893600936000000000001234567890215' + nominal + '0303UMI51440014ID.CO.QRIS0123';
-      const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrisString)}`;
+    async function checkTransaction() {
+      const project = document.getElementById('pkCheckProject').value;
+      const order_id = document.getElementById('pkCheckOrderId').value;
+      const amount = document.getElementById('pkCheckAmount').value;
+      const pakasir_api_key = document.getElementById('pkCheckApiKey').value;
 
-      document.getElementById('qris-preview').innerHTML = `<img src="${qrURL}" alt="QRIS" style="width:200px;height:200px;">`;
-      document.getElementById('qris-preview').dataset.qris = qrisString;
-      showToast('QR Generated!', 'success');
+      if (!project || !order_id || !amount || !pakasir_api_key) {
+        showResponse('checkResponse', { status: false, message: 'Semua parameter wajib diisi' });
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE}/api/pakasir/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project, order_id, amount: parseInt(amount), pakasir_api_key })
+        });
+        const data = await res.json();
+        showResponse('checkResponse', data);
+      } catch (err) {
+        showResponse('checkResponse', { status: false, message: 'Error: ' + err.message });
+      }
     }
 
-    function copyQRIS() {
-      const qris = document.getElementById('qris-preview').dataset.qris;
-      if (!qris) return showToast('Generate QR dulu!', 'error');
-      navigator.clipboard.writeText(qris).then(() => showToast('QRIS Copied!', 'success'));
+    async function cancelTransaction() {
+      const project = document.getElementById('pkCancelProject').value;
+      const order_id = document.getElementById('pkCancelOrderId').value;
+      const amount = document.getElementById('pkCancelAmount').value;
+      const pakasir_api_key = document.getElementById('pkCancelApiKey').value;
+
+      if (!project || !order_id || !amount || !pakasir_api_key) {
+        showResponse('cancelResponse', { status: false, message: 'Semua parameter wajib diisi' });
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE}/api/pakasir/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project, order_id, amount: parseInt(amount), pakasir_api_key })
+        });
+        const data = await res.json();
+        showResponse('cancelResponse', data);
+      } catch (err) {
+        showResponse('cancelResponse', { status: false, message: 'Error: ' + err.message });
+      }
     }
 
-    function downloadQR() {
-      const img = document.querySelector('#qris-preview img');
-      if (!img) return showToast('Generate QR dulu!', 'error');
-      const a = document.createElement('a');
-      a.href = img.src;
-      a.download = 'qris-ramzzpay.png';
-      a.click();
-      showToast('Download dimulai!', 'success');
+    async function getMethods() {
+      try {
+        const res = await fetch(`${BASE}/api/pakasir/methods`);
+        const data = await res.json();
+        showResponse('methodsResponse', data);
+      } catch (err) {
+        showResponse('methodsResponse', { status: false, message: 'Error: ' + err.message });
+      }
     }
-
-    // =============================================
-    // INIT
-    // =============================================
-    loadProfile();
-    loadMutasi();
   </script>
+
 </body>
 </html>
