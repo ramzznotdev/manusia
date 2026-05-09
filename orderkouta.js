@@ -5,91 +5,103 @@ const fs = require('fs');
 const path = require('path');
 
 // =============================================
-// SIMPEL JSON FILE STORE
+// STORAGE: Memory (Vercel) atau File (Local)
 // =============================================
-const DATA_DIR = path.join(__dirname, 'data');
-const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+let store;
+let isVercel;
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-function readSessions() {
-  try {
-    if (!fs.existsSync(SESSION_FILE)) return {};
-    return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-  } catch (err) {
-    return {};
+// Dipanggil dari index.js via app.set()
+router.use((req, res, next) => {
+  if (!store) {
+    isVercel = req.app.get('isVercel');
+    if (isVercel) {
+      store = req.app.get('memoryStore');
+    } else {
+      // File-based storage buat local
+      const DATA_DIR = path.join(__dirname, 'data');
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+      
+      store = {
+        getSession(apiKey) {
+          try {
+            if (!fs.existsSync(SESSION_FILE)) return null;
+            const sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+            return sessions[apiKey] || null;
+          } catch { return null; }
+        },
+        setSession(apiKey, data) {
+          try {
+            let sessions = {};
+            if (fs.existsSync(SESSION_FILE)) {
+              sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+            }
+            sessions[apiKey] = data;
+            fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+          } catch {}
+        },
+        deleteSession(apiKey) {
+          try {
+            if (!fs.existsSync(SESSION_FILE)) return;
+            const sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+            delete sessions[apiKey];
+            fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+          } catch {}
+        }
+      };
+    }
   }
-}
+  next();
+});
 
-function saveSessions(data) {
-  fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2));
-}
-
+// Helper functions
 function getSession(apiKey) {
-  const sessions = readSessions();
-  return sessions[apiKey] || null;
+  return isVercel ? store.sessions[apiKey] || null : store.getSession(apiKey);
 }
 
 function setSession(apiKey, data) {
-  const sessions = readSessions();
-  sessions[apiKey] = data;
-  saveSessions(sessions);
+  if (isVercel) {
+    store.sessions[apiKey] = data;
+  } else {
+    store.setSession(apiKey, data);
+  }
 }
 
 function deleteSession(apiKey) {
-  const sessions = readSessions();
-  delete sessions[apiKey];
-  saveSessions(sessions);
+  if (isVercel) {
+    delete store.sessions[apiKey];
+  } else {
+    store.deleteSession(apiKey);
+  }
 }
 
 // =============================================
 // ORDERKOUTA CLIENT
 // =============================================
-const OK_BASE_URL = 'https://app.orderkuota.com/api/v2';
+const OK_URL = 'https://app.orderkuota.com/api/v2';
 
-// Headers default biar kayak request dari aplikasi asli
-function getDefaultHeaders(cookies = {}) {
-  const headers = {
+function getHeaders(cookies = {}) {
+  const h = {
     'Content-Type': 'application/x-www-form-urlencoded',
-    'User-Agent': 'okhttp/5.3.2',
-    'signature': 'dummy',
-    'timestamp': Date.now().toString()
+    'User-Agent': 'okhttp/5.3.2'
   };
-
-  // Build cookie string
-  const cookieParts = [];
-  for (const [key, value] of Object.entries(cookies)) {
-    cookieParts.push(`${key}=${value}`);
-  }
-  if (cookieParts.length > 0) {
-    headers['Cookie'] = cookieParts.join('; ');
-  }
-
-  return headers;
+  const c = Object.entries(cookies).map(([k,v]) => `${k}=${v}`).join('; ');
+  if (c) h['Cookie'] = c;
+  return h;
 }
 
-// Body params default biar kayak request dari aplikasi
-function getDefaultBody() {
-  return {
+function getBody(extra = {}) {
+  return new URLSearchParams({
     request_time: Date.now(),
     phone_android_version: '12',
     app_version_code: '260204',
     app_version_name: '26.02.04',
     phone_model: 'Xiaomi 13',
-    phone_uuid: 'ramzzpay-uuid-' + Math.random().toString(36).substring(7),
-    ui_mode: 'dark'
-  };
-}
-
-// Convert object ke x-www-form-urlencoded
-function toFormData(obj) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(obj)) {
-    params.append(key, value);
-  }
-  return params.toString();
+    ui_mode: 'dark',
+    ...extra
+  }).toString();
 }
 
 // =============================================
@@ -100,84 +112,46 @@ router.post('/get-otp', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
 
   if (!username || !password) {
-    return res.status(400).json({
-      status: false,
-      message: 'username dan password wajib diisi'
-    });
+    return res.status(400).json({ status: false, message: 'username dan password wajib' });
   }
 
-  // Cek apakah user ini udah punya session aktif
-  const existingSession = getSession(apiKey);
-  if (existingSession && existingSession.authenticated) {
-    return res.status(400).json({
-      status: false,
-      message: 'Akun sudah login. Logout dulu sebelum request OTP baru.'
-    });
+  const session = getSession(apiKey);
+  if (session?.authenticated) {
+    return res.status(400).json({ status: false, message: 'Sudah login. Logout dulu.' });
   }
 
   try {
-    const body = {
-      ...getDefaultBody(),
-      username,
-      password
-    };
+    const response = await axios.post(`${OK_URL}/login`, getBody({ username, password }), {
+      headers: getHeaders(),
+      timeout: 15000
+    });
 
-    const response = await axios.post(
-      `${OK_BASE_URL}/login`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(),
-        timeout: 15000
-      }
-    );
-
-    const data = response.data;
-
-    // Parse cookies dari response header
     const cookies = {};
-    const setCookie = response.headers['set-cookie'];
-    if (setCookie && Array.isArray(setCookie)) {
-      setCookie.forEach(cookie => {
-        const match = cookie.match(/^([^=]+)=([^;]+)/);
-        if (match) {
-          cookies[match[1]] = match[2];
-        }
+    const sc = response.headers['set-cookie'];
+    if (Array.isArray(sc)) {
+      sc.forEach(c => {
+        const m = c.match(/^([^=]+)=([^;]+)/);
+        if (m) cookies[m[1]] = m[2];
       });
     }
 
+    const data = response.data;
     if (data.success) {
-      // Simpan session awal (belum authenticated, tapi cookies udah disimpan)
       setSession(apiKey, {
-        username,
-        cookies,
+        username, cookies,
         otpSent: true,
-        otpMethod: data.results?.otp || 'WhatsApp',
-        otpValue: data.results?.otp_value || username,
         authenticated: false,
         createdAt: new Date().toISOString()
       });
-
       return res.json({
         status: true,
-        message: `OTP dikirim via ${data.results?.otp || 'WhatsApp'} ke ${data.results?.otp_value || username}`,
-        data: {
-          otp_method: data.results?.otp || 'WhatsApp',
-          masked_phone: data.results?.otp_value || username
-        }
+        message: `OTP dikirim ke ${data.results?.otp_value || username}`
       });
     }
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'Gagal request OTP. Periksa username/password.'
-    });
-
+    return res.status(400).json({ status: false, message: data.message || 'Gagal request OTP' });
   } catch (err) {
-    console.error('[GET-OTP ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
+    return res.status(502).json({ status: false, message: 'Server OrderKouta error: ' + err.message });
   }
 });
 
@@ -188,81 +162,43 @@ router.post('/verify-otp', async (req, res) => {
   const { otp } = req.body;
   const apiKey = req.headers['x-api-key'];
 
-  if (!otp) {
-    return res.status(400).json({
-      status: false,
-      message: 'Kode OTP wajib diisi'
-    });
-  }
+  if (!otp) return res.status(400).json({ status: false, message: 'OTP wajib' });
 
   const session = getSession(apiKey);
-  if (!session || !session.otpSent) {
-    return res.status(400).json({
-      status: false,
-      message: 'Session tidak ditemukan. Request OTP dulu.'
-    });
-  }
-
-  if (session.authenticated) {
-    return res.status(400).json({
-      status: false,
-      message: 'Akun sudah login. Logout dulu jika ingin login ulang.'
-    });
-  }
+  if (!session?.otpSent) return res.status(400).json({ status: false, message: 'Request OTP dulu' });
+  if (session.authenticated) return res.status(400).json({ status: false, message: 'Sudah login' });
 
   try {
-    const body = {
-      ...getDefaultBody(),
-      username: session.username,
-      password: otp
-    };
-
-    const response = await axios.post(
-      `${OK_BASE_URL}/login`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(session.cookies),
-        timeout: 15000
-      }
-    );
+    const response = await axios.post(`${OK_URL}/login`, getBody({ username: session.username, password: otp }), {
+      headers: getHeaders(session.cookies),
+      timeout: 15000
+    });
 
     const data = response.data;
-
     if (data.success && data.results?.token) {
-      // Update session dengan token & user info
       setSession(apiKey, {
         ...session,
         authenticated: true,
         token: data.results.token,
-        userId: data.results.id || '',
+        userId: data.results.id,
         name: data.results.name || session.username,
-        saldo: data.results.saldo || 0,
-        verifiedAt: new Date().toISOString()
+        saldo: data.results.saldo || 0
       });
 
       return res.json({
         status: true,
-        message: 'Login berhasil! Selamat datang, ' + (data.results.name || session.username),
+        message: 'Login berhasil!',
         data: {
-          name: data.results.name || session.username,
-          user_id: data.results.id || '',
-          saldo: data.results.saldo || 0,
-          token: data.results.token.substring(0, 15) + '...' // Masked token
+          name: data.results.name,
+          user_id: data.results.id,
+          saldo: data.results.saldo || 0
         }
       });
     }
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'OTP salah atau expired. Coba lagi.'
-    });
-
+    return res.status(400).json({ status: false, message: data.message || 'OTP salah' });
   } catch (err) {
-    console.error('[VERIFY-OTP ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
+    return res.status(502).json({ status: false, message: 'Error: ' + err.message });
   }
 });
 
@@ -272,24 +208,15 @@ router.post('/verify-otp', async (req, res) => {
 router.get('/profile', (req, res) => {
   const apiKey = req.headers['x-api-key'];
   const session = getSession(apiKey);
-
-  if (!session || !session.authenticated) {
-    return res.status(401).json({
-      status: false,
-      message: 'Belum login. Request OTP & verifikasi dulu.'
-    });
-  }
+  if (!session?.authenticated) return res.status(401).json({ status: false, message: 'Belum login' });
 
   return res.json({
     status: true,
-    message: 'Profile berhasil diambil',
     data: {
       name: session.name,
       user_id: session.userId,
-      saldo: session.saldo || 0,
-      username: session.username,
-      authenticated: session.authenticated,
-      login_at: session.verifiedAt
+      saldo: session.saldo,
+      username: session.username
     }
   });
 });
@@ -302,61 +229,37 @@ router.get('/mutasi', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
 
   const session = getSession(apiKey);
-  if (!session || !session.authenticated) {
-    return res.status(401).json({
-      status: false,
-      message: 'Belum login. Request OTP & verifikasi dulu.'
-    });
-  }
+  if (!session?.authenticated) return res.status(401).json({ status: false, message: 'Belum login' });
 
   try {
-    // Body buat request mutasi
-    const body = {
-      ...getDefaultBody(),
+    const body = getBody({
       auth_token: session.token,
       auth_username: session.username,
       'requests[0]': 'account',
       'requests[qris_history][page]': page,
       'requests[qris_history][keterangan]': '',
-      'requests[qris_history][jumlah]': '',
-      'requests[qris_history][dari_tanggal]': '',
-      'requests[qris_history][ke_tanggal]': ''
-    };
+      'requests[qris_history][jumlah]': ''
+    });
 
-    const response = await axios.post(
-      `${OK_BASE_URL}/qris/mutasi/${session.userId}`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(session.cookies),
-        timeout: 15000
-      }
-    );
+    const response = await axios.post(`${OK_URL}/qris/mutasi/${session.userId}`, body, {
+      headers: getHeaders(session.cookies),
+      timeout: 15000
+    });
 
     const data = response.data;
-
     if (data.success) {
       return res.json({
         status: true,
-        message: 'Mutasi berhasil diambil',
         data: {
           account: data.account?.results || {},
-          mutasi: data.qris_history?.results || [],
-          page: page
+          mutasi: data.qris_history?.results || []
         }
       });
     }
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'Gagal mengambil mutasi'
-    });
-
+    return res.status(400).json({ status: false, message: 'Gagal ambil mutasi' });
   } catch (err) {
-    console.error('[MUTASI ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
+    return res.status(502).json({ status: false, message: 'Error: ' + err.message });
   }
 });
 
@@ -364,22 +267,8 @@ router.get('/mutasi', async (req, res) => {
 // POST /api/orderkouta/logout
 // =============================================
 router.post('/logout', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  
-  const session = getSession(apiKey);
-  if (!session) {
-    return res.status(400).json({
-      status: false,
-      message: 'Tidak ada session aktif'
-    });
-  }
-
-  deleteSession(apiKey);
-
-  return res.json({
-    status: true,
-    message: 'Logout berhasil. Sesi telah dihapus.'
-  });
+  deleteSession(req.headers['x-api-key']);
+  res.json({ status: true, message: 'Logout berhasil' });
 });
 
 module.exports = router;
