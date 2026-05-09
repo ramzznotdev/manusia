@@ -1,25 +1,18 @@
-/**
- * =============================================
- *  📱 OrderkuotaClient — NATIVE NODE.JS API
- *  Lebih cepat, aman, & bebas Cloudflare
- * =============================================
- */
+const axios = require('axios');
 
 class OrderkuotaClient {
     constructor() {
         this.baseUrl = 'https://app.orderkuota.com';
-        this.timeout = 30000; // 30 detik dalam ms
-        this.cookies = {};       // PHPSESSID, user_id, user_key
-        this.token = '';         // Token mutasi QRIS
-        this.userId = '';        // ID User ex: 20xxxxx
+        this.timeout = 30000;
+        this.cookies = {};
+        this.token = '';
+        this.userId = '';
         this.username = '';
         this.isAuthenticated = false;
     }
 
-    _log(msg) {
-        // console.log(`[OKC-API] ${msg}`);
-    }
-
+    _log(msg) {}
+    
     _err(msg) {
         console.error(`[OKC-API ERROR] ${msg}`);
     }
@@ -31,6 +24,7 @@ class OrderkuotaClient {
     }
 
     _parseCookies(setCookieHeaders) {
+        if (!setCookieHeaders) return;
         for (const cookieStr of setCookieHeaders) {
             const parts = cookieStr.split(';')[0].split('=');
             if (parts.length === 2) {
@@ -39,12 +33,9 @@ class OrderkuotaClient {
         }
     }
 
-    /**
-     * Base HTTP Request menggunakan fetch
-     */
     async _request(endpoint, bodyParams = {}) {
         const url = this.baseUrl + endpoint;
-        const ts = Math.round(Date.now()); // 13-digit millisecond timestamp
+        const ts = Date.now();
 
         const defaultBody = {
             request_time: ts,
@@ -78,37 +69,29 @@ class OrderkuotaClient {
             headers['Cookie'] = cookieHeader;
         }
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
         try {
-            const response = await fetch(url, {
-                method: 'POST',
+            const response = await axios.post(url, bodyStr, {
                 headers: headers,
-                body: bodyStr,
-                signal: controller.signal,
+                timeout: this.timeout,
+                responseType: 'json'
             });
 
-            clearTimeout(timeoutId);
-
-            // Parse set-cookie headers
-            const setCookieHeaders = response.headers.getSetCookie?.() || [];
-            this._parseCookies(setCookieHeaders);
-
-            const data = await response.json();
+            // Parse cookies
+            const setCookie = response.headers['set-cookie'];
+            this._parseCookies(setCookie);
 
             return {
                 statusCode: response.status,
-                data: data,
+                data: response.data,
             };
         } catch (error) {
-            clearTimeout(timeoutId);
             this._err(`Fetch Error: ${error.message}`);
+            if (error.response) {
+                this._parseCookies(error.response.headers['set-cookie']);
+            }
             throw new Error(`API Request failed: ${error.message}`);
         }
     }
-
-    // ============ LOGIN FLOW ============
 
     async getOTP(username, password) {
         this._log(`Request OTP buat: ${username}`);
@@ -123,17 +106,13 @@ class OrderkuotaClient {
         if (data && data.success) {
             const otpMethod = data.results.otp;
             const otpVal = data.results.otp_value;
-            this._log(`OTP via ${otpMethod} kepanggil! (${otpVal})`);
             return { success: true, message: `OTP dikirim via ${otpMethod} ke ${otpVal}` };
         }
 
-        this._err("Gagal dapet OTP: " + JSON.stringify(data));
         return { success: false, message: (data && data.message) || 'Unknown error' };
     }
 
     async authenticate(otp) {
-        this._log("Submit kode OTP...");
-
         if (!this.username) {
             return { success: false, message: 'Username belum di set (panggil getOTP dulu)' };
         }
@@ -149,8 +128,6 @@ class OrderkuotaClient {
             this.token = data.results.token;
             this.userId = data.results.id;
 
-            this._log(`Auth Sukses! Token: ${this.token.substring(0, 15)}...`);
-
             return {
                 success: true,
                 data: data.results,
@@ -158,18 +135,13 @@ class OrderkuotaClient {
             };
         }
 
-        this._err("OTP Salah atau Expired!");
         return { success: false, message: 'Kode OTP salah/kedaluwarsa' };
     }
-
-    // ============ ACTIONS ============
 
     async getMutasiQris(page = 1) {
         if (!this.isAuthenticated || !this.userId) {
             throw new Error("Belum auth atau userId kosong!");
         }
-
-        this._log(`Fetching Mutasi QRIS (Page ${page})...`);
 
         const res = await this._request(`/api/v2/qris/mutasi/${this.userId}`, {
             'requests[0]': 'account',
@@ -182,28 +154,20 @@ class OrderkuotaClient {
 
         const data = res.data;
         if (data && data.success) {
-            const mutasi = data.qris_history?.results || [];
-            const infoAkun = data.account?.results;
-
             return {
                 success: true,
-                info: infoAkun,
-                mutasi: mutasi,
+                info: data.account?.results,
+                mutasi: data.qris_history?.results || [],
             };
         }
 
         return { success: false, message: 'Gagal parse data mutasi' };
     }
 
-    /**
-     * Ambil menu QRIS (termasuk URL download QRIS statis)
-     */
     async getQrisMenu() {
         if (!this.isAuthenticated || !this.userId) {
             throw new Error("Belum auth atau userId kosong!");
         }
-
-        this._log("Fetching QRIS Menu...");
 
         const res = await this._request(`/api/v2/qris/menu/${this.userId}`, {
             'requests[0]': 'account',
@@ -212,20 +176,15 @@ class OrderkuotaClient {
 
         const data = res.data;
         if (data && data.success) {
-            const downloadUrl = data.qris_menu?.results?.download || '';
-            const infoAkun = data.account?.results;
-
             return {
                 success: true,
-                download_url: downloadUrl,
-                info: infoAkun,
+                download_url: data.qris_menu?.results?.download || '',
+                info: data.account?.results,
             };
         }
 
         return { success: false, message: 'Gagal ambil QRIS menu' };
     }
-
-    // ============ SESSION MGMT ============
 
     exportSession() {
         return {
