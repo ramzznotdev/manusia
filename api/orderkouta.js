@@ -1,385 +1,119 @@
-const express = require('express');
-const router = express.Router();
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
-// =============================================
-// SIMPEL JSON FILE STORE
-// =============================================
-const DATA_DIR = path.join(__dirname, 'data');
-const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+class OrderkuotaClient {
+    constructor() {
+        this.baseUrl = 'https://app.orderkuota.com';
+        this.timeout = 30000;
+        this.cookies = {};
+        this.token = '';
+        this.userId = '';
+        this.username = '';
+        this.isAuthenticated = false;
+    }
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+    _cookieString() {
+        return Object.entries(this.cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+    }
 
-function readSessions() {
-  try {
-    if (!fs.existsSync(SESSION_FILE)) return {};
-    return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
-  } catch (err) {
-    return {};
-  }
-}
-
-function saveSessions(data) {
-  fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2));
-}
-
-function getSession(apiKey) {
-  const sessions = readSessions();
-  return sessions[apiKey] || null;
-}
-
-function setSession(apiKey, data) {
-  const sessions = readSessions();
-  sessions[apiKey] = data;
-  saveSessions(sessions);
-}
-
-function deleteSession(apiKey) {
-  const sessions = readSessions();
-  delete sessions[apiKey];
-  saveSessions(sessions);
-}
-
-// =============================================
-// ORDERKOUTA CLIENT
-// =============================================
-const OK_BASE_URL = 'https://app.orderkuota.com/api/v2';
-
-// Headers default biar kayak request dari aplikasi asli
-function getDefaultHeaders(cookies = {}) {
-  const headers = {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'User-Agent': 'okhttp/5.3.2',
-    'signature': 'dummy',
-    'timestamp': Date.now().toString()
-  };
-
-  // Build cookie string
-  const cookieParts = [];
-  for (const [key, value] of Object.entries(cookies)) {
-    cookieParts.push(`${key}=${value}`);
-  }
-  if (cookieParts.length > 0) {
-    headers['Cookie'] = cookieParts.join('; ');
-  }
-
-  return headers;
-}
-
-// Body params default biar kayak request dari aplikasi
-function getDefaultBody() {
-  return {
-    request_time: Date.now(),
-    phone_android_version: '12',
-    app_version_code: '260204',
-    app_version_name: '26.02.04',
-    phone_model: 'Xiaomi 13',
-    phone_uuid: 'ramzzpay-uuid-' + Math.random().toString(36).substring(7),
-    ui_mode: 'dark'
-  };
-}
-
-// Convert object ke x-www-form-urlencoded
-function toFormData(obj) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(obj)) {
-    params.append(key, value);
-  }
-  return params.toString();
-}
-
-// =============================================
-// POST /api/orderkouta/get-otp
-// =============================================
-router.post('/get-otp', async (req, res) => {
-  const { username, password } = req.body;
-  const apiKey = req.headers['x-api-key'];
-
-  if (!username || !password) {
-    return res.status(400).json({
-      status: false,
-      message: 'username dan password wajib diisi'
-    });
-  }
-
-  // Cek apakah user ini udah punya session aktif
-  const existingSession = getSession(apiKey);
-  if (existingSession && existingSession.authenticated) {
-    return res.status(400).json({
-      status: false,
-      message: 'Akun sudah login. Logout dulu sebelum request OTP baru.'
-    });
-  }
-
-  try {
-    const body = {
-      ...getDefaultBody(),
-      username,
-      password
-    };
-
-    const response = await axios.post(
-      `${OK_BASE_URL}/login`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(),
-        timeout: 15000
-      }
-    );
-
-    const data = response.data;
-
-    // Parse cookies dari response header
-    const cookies = {};
-    const setCookie = response.headers['set-cookie'];
-    if (setCookie && Array.isArray(setCookie)) {
-      setCookie.forEach(cookie => {
-        const match = cookie.match(/^([^=]+)=([^;]+)/);
-        if (match) {
-          cookies[match[1]] = match[2];
+    _parseCookies(setCookieHeaders) {
+        if (!setCookieHeaders) return;
+        for (const cookieStr of setCookieHeaders) {
+            const parts = cookieStr.split(';')[0].split('=');
+            if (parts.length === 2) this.cookies[parts[0].trim()] = parts[1].trim();
         }
-      });
     }
 
-    if (data.success) {
-      // Simpan session awal (belum authenticated, tapi cookies udah disimpan)
-      setSession(apiKey, {
-        username,
-        cookies,
-        otpSent: true,
-        otpMethod: data.results?.otp || 'WhatsApp',
-        otpValue: data.results?.otp_value || username,
-        authenticated: false,
-        createdAt: new Date().toISOString()
-      });
-
-      return res.json({
-        status: true,
-        message: `OTP dikirim via ${data.results?.otp || 'WhatsApp'} ke ${data.results?.otp_value || username}`,
-        data: {
-          otp_method: data.results?.otp || 'WhatsApp',
-          masked_phone: data.results?.otp_value || username
+    async _request(endpoint, bodyParams = {}) {
+        const url = this.baseUrl + endpoint;
+        const ts = Date.now();
+        const defaultBody = {
+            request_time: ts, app_reg_id: 'dummy', phone_android_version: '12',
+            app_version_code: '260204', phone_uuid: 'dummy', app_version_name: '26.02.04',
+            ui_mode: 'light', phone_model: 'vivo 1920'
+        };
+        const mergedBody = { ...defaultBody, ...bodyParams };
+        if (this.token && this.username) {
+            mergedBody.auth_token = this.token;
+            mergedBody.auth_username = this.username;
         }
-      });
-    }
+        const bodyStr = new URLSearchParams(mergedBody).toString();
+        const headers = {
+            'User-Agent': 'okhttp/5.3.2', 'Content-Type': 'application/x-www-form-urlencoded',
+            'signature': 'dummy', 'timestamp': ts.toString()
+        };
+        const cookieHeader = this._cookieString();
+        if (cookieHeader) headers['Cookie'] = cookieHeader;
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'Gagal request OTP. Periksa username/password.'
-    });
-
-  } catch (err) {
-    console.error('[GET-OTP ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
-  }
-});
-
-// =============================================
-// POST /api/orderkouta/verify-otp
-// =============================================
-router.post('/verify-otp', async (req, res) => {
-  const { otp } = req.body;
-  const apiKey = req.headers['x-api-key'];
-
-  if (!otp) {
-    return res.status(400).json({
-      status: false,
-      message: 'Kode OTP wajib diisi'
-    });
-  }
-
-  const session = getSession(apiKey);
-  if (!session || !session.otpSent) {
-    return res.status(400).json({
-      status: false,
-      message: 'Session tidak ditemukan. Request OTP dulu.'
-    });
-  }
-
-  if (session.authenticated) {
-    return res.status(400).json({
-      status: false,
-      message: 'Akun sudah login. Logout dulu jika ingin login ulang.'
-    });
-  }
-
-  try {
-    const body = {
-      ...getDefaultBody(),
-      username: session.username,
-      password: otp
-    };
-
-    const response = await axios.post(
-      `${OK_BASE_URL}/login`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(session.cookies),
-        timeout: 15000
-      }
-    );
-
-    const data = response.data;
-
-    if (data.success && data.results?.token) {
-      // Update session dengan token & user info
-      setSession(apiKey, {
-        ...session,
-        authenticated: true,
-        token: data.results.token,
-        userId: data.results.id || '',
-        name: data.results.name || session.username,
-        saldo: data.results.saldo || 0,
-        verifiedAt: new Date().toISOString()
-      });
-
-      return res.json({
-        status: true,
-        message: 'Login berhasil! Selamat datang, ' + (data.results.name || session.username),
-        data: {
-          name: data.results.name || session.username,
-          user_id: data.results.id || '',
-          saldo: data.results.saldo || 0,
-          token: data.results.token.substring(0, 15) + '...' // Masked token
+        try {
+            const response = await axios.post(url, bodyStr, { headers, timeout: this.timeout, responseType: 'json' });
+            this._parseCookies(response.headers['set-cookie']);
+            return { statusCode: response.status, data: response.data };
+        } catch (error) {
+            if (error.response) this._parseCookies(error.response.headers['set-cookie']);
+            throw new Error(error.message);
         }
-      });
     }
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'OTP salah atau expired. Coba lagi.'
-    });
-
-  } catch (err) {
-    console.error('[VERIFY-OTP ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
-  }
-});
-
-// =============================================
-// GET /api/orderkouta/profile
-// =============================================
-router.get('/profile', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  const session = getSession(apiKey);
-
-  if (!session || !session.authenticated) {
-    return res.status(401).json({
-      status: false,
-      message: 'Belum login. Request OTP & verifikasi dulu.'
-    });
-  }
-
-  return res.json({
-    status: true,
-    message: 'Profile berhasil diambil',
-    data: {
-      name: session.name,
-      user_id: session.userId,
-      saldo: session.saldo || 0,
-      username: session.username,
-      authenticated: session.authenticated,
-      login_at: session.verifiedAt
-    }
-  });
-});
-
-// =============================================
-// GET /api/orderkouta/mutasi
-// =============================================
-router.get('/mutasi', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  const page = parseInt(req.query.page) || 1;
-
-  const session = getSession(apiKey);
-  if (!session || !session.authenticated) {
-    return res.status(401).json({
-      status: false,
-      message: 'Belum login. Request OTP & verifikasi dulu.'
-    });
-  }
-
-  try {
-    // Body buat request mutasi
-    const body = {
-      ...getDefaultBody(),
-      auth_token: session.token,
-      auth_username: session.username,
-      'requests[0]': 'account',
-      'requests[qris_history][page]': page,
-      'requests[qris_history][keterangan]': '',
-      'requests[qris_history][jumlah]': '',
-      'requests[qris_history][dari_tanggal]': '',
-      'requests[qris_history][ke_tanggal]': ''
-    };
-
-    const response = await axios.post(
-      `${OK_BASE_URL}/qris/mutasi/${session.userId}`,
-      toFormData(body),
-      {
-        headers: getDefaultHeaders(session.cookies),
-        timeout: 15000
-      }
-    );
-
-    const data = response.data;
-
-    if (data.success) {
-      return res.json({
-        status: true,
-        message: 'Mutasi berhasil diambil',
-        data: {
-          account: data.account?.results || {},
-          mutasi: data.qris_history?.results || [],
-          page: page
+    async getOTP(username, password) {
+        this.username = username;
+        const res = await this._request('/api/v2/login', { username, password });
+        const data = res.data;
+        if (data && data.success) {
+            return { success: true, message: `OTP dikirim via ${data.results.otp} ke ${data.results.otp_value}` };
         }
-      });
+        return { success: false, message: data?.message || 'Gagal' };
     }
 
-    return res.status(400).json({
-      status: false,
-      message: data.message || 'Gagal mengambil mutasi'
-    });
+    async authenticate(otp) {
+        if (!this.username) return { success: false, message: 'Username belum di set' };
+        const res = await this._request('/api/v2/login', { username: this.username, password: otp });
+        const data = res.data;
+        if (data?.success && data.results?.token) {
+            this.isAuthenticated = true;
+            this.token = data.results.token;
+            this.userId = data.results.id;
+            return { success: true, data: data.results, message: 'Login berhasil atas nama ' + data.results.name };
+        }
+        return { success: false, message: 'Kode OTP salah/kedaluwarsa' };
+    }
 
-  } catch (err) {
-    console.error('[MUTASI ERROR]', err.message);
-    return res.status(502).json({
-      status: false,
-      message: 'Server OrderKouta tidak merespons: ' + err.message
-    });
-  }
-});
+    async getMutasiQris(page = 1) {
+        if (!this.isAuthenticated || !this.userId) throw new Error("Belum auth!");
+        const res = await this._request(`/api/v2/qris/mutasi/${this.userId}`, {
+            'requests[0]': 'account', 'requests[qris_history][page]': page,
+            'requests[qris_history][keterangan]': '', 'requests[qris_history][jumlah]': '',
+            'requests[qris_history][dari_tanggal]': '', 'requests[qris_history][ke_tanggal]': ''
+        });
+        const data = res.data;
+        if (data?.success) return { success: true, info: data.account?.results, mutasi: data.qris_history?.results || [] };
+        return { success: false, message: 'Gagal parse data mutasi' };
+    }
 
-// =============================================
-// POST /api/orderkouta/logout
-// =============================================
-router.post('/logout', (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  
-  const session = getSession(apiKey);
-  if (!session) {
-    return res.status(400).json({
-      status: false,
-      message: 'Tidak ada session aktif'
-    });
-  }
+    async getQrisMenu() {
+        if (!this.isAuthenticated || !this.userId) throw new Error("Belum auth!");
+        const res = await this._request(`/api/v2/qris/menu/${this.userId}`, {
+            'requests[0]': 'account', 'requests[1]': 'qris_menu'
+        });
+        const data = res.data;
+        if (data?.success) return { success: true, download_url: data.qris_menu?.results?.download || '', info: data.account?.results };
+        return { success: false, message: 'Gagal ambil QRIS menu' };
+    }
 
-  deleteSession(apiKey);
+    exportSession() {
+        return {
+            cookies: this.cookies, token: this.token, userId: this.userId,
+            username: this.username, isAuthenticated: this.isAuthenticated, savedAt: new Date().toISOString()
+        };
+    }
 
-  return res.json({
-    status: true,
-    message: 'Logout berhasil. Sesi telah dihapus.'
-  });
-});
+    importSession(session) {
+        if (!session) return;
+        this.cookies = session.cookies || {};
+        this.token = session.token || '';
+        this.userId = session.userId || '';
+        this.username = session.username || '';
+        this.isAuthenticated = session.isAuthenticated || false;
+    }
+}
 
-module.exports = router;
+module.exports = OrderkuotaClient;
