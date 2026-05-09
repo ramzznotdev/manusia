@@ -90,14 +90,35 @@ function getParams(req) {
 }
 
 // =============================================
-// ORDERKOUTA CONFIG
+// ORDERKOUTA CONFIG (UPDATE)
 // =============================================
 const OK_URL = 'https://app.orderkuota.com/api/v2';
+
+// User-Agent list buat rotasi biar gak ketahuan bot
+const USER_AGENTS = [
+  'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Linux; Android 13; CPH2493) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  'okhttp/5.3.2',
+];
+
+function getRandomUA() {
+  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
 
 function getHeaders(cookies = {}) {
   const h = {
     'Content-Type': 'application/x-www-form-urlencoded',
-    'User-Agent': 'okhttp/5.3.2'
+    'User-Agent': getRandomUA(),
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Origin': 'https://app.orderkuota.com',
+    'Referer': 'https://app.orderkuota.com/',
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'X-Requested-With': 'XMLHttpRequest',
   };
   const c = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
   if (c) h['Cookie'] = c;
@@ -107,7 +128,7 @@ function getHeaders(cookies = {}) {
 function getBody(extra = {}) {
   return new URLSearchParams({
     request_time: Date.now(),
-    phone_android_version: '12',
+    phone_android_version: '14',
     app_version_code: '260204',
     app_version_name: '26.02.04',
     phone_model: 'Xiaomi 13',
@@ -140,11 +161,25 @@ app.all('/api/orderkouta/get-otp', async (req, res) => {
     });
   }
 
+  // Delay random biar gak kena rate limit
+  const delay = Math.floor(Math.random() * 2000) + 1000;
+  await new Promise(r => setTimeout(r, delay));
+
   try {
     const response = await axios.post(`${OK_URL}/login`, getBody({ username, password }), {
       headers: getHeaders(),
-      timeout: 15000
+      timeout: 30000,
+      maxRedirects: 5,
+      validateStatus: (status) => status < 500,
     });
+
+    // Cek status 469
+    if (response.status === 469) {
+      return res.status(429).json({
+        status: false,
+        message: 'Terlalu banyak request. Silakan tunggu 5-10 menit.'
+      });
+    }
 
     const cookies = {};
     const sc = response.headers['set-cookie'];
@@ -184,6 +219,14 @@ app.all('/api/orderkouta/get-otp', async (req, res) => {
 
   } catch (err) {
     console.error('[GET-OTP ERROR]', err.message);
+    
+    if (err.response?.status === 469) {
+      return res.status(429).json({
+        status: false,
+        message: 'Terlalu banyak request. Silakan tunggu 5-10 menit.'
+      });
+    }
+
     return res.status(502).json({
       status: false,
       message: 'Server OrderKouta tidak merespons: ' + err.message
@@ -222,7 +265,11 @@ app.all('/api/orderkouta/verify-otp', async (req, res) => {
     const response = await axios.post(
       `${OK_URL}/login`,
       getBody({ username: session.username, password: otp }),
-      { headers: getHeaders(session.cookies), timeout: 15000 }
+      { 
+        headers: getHeaders(session.cookies), 
+        timeout: 30000,
+        validateStatus: (status) => status < 500,
+      }
     );
 
     const data = response.data;
