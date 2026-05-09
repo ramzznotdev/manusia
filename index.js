@@ -1,108 +1,526 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const path = require('path');
+// =============================================
+// RAMZZPAY API - Node.js + Express Server
+// =============================================
 
-// Import route files
-const orderkouta = require('./orderkouta');
-const pakasir = require('./pakasir');
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const axios = require('axios');
 
 const app = express();
-
-// =============================================
-// SIMPEL STORAGE: Pake memory cache buat Vercel
-// =============================================
-const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
-
-// Memory store (buat Vercel yang gak support fs)
-const memoryStore = {
-  sessions: {},
-  qrisCache: {}
-};
-
-// Export memory store biar bisa dipake route lain
-app.set('memoryStore', memoryStore);
-app.set('isVercel', isVercel);
+const PORT = process.env.PORT || 3000;
 
 // =============================================
 // MIDDLEWARE
 // =============================================
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'x-api-key']
-}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use(morgan('dev'));
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// CORS - allow all origins
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // =============================================
-// STATIC FILES (cuma jalan di local)
+// STORAGE - Memory / File
 // =============================================
-if (!isVercel) {
-  app.use(express.static(path.join(__dirname, 'public')));
+const isVercel = process.env.VERCEL === '1';
+
+let store;
+if (isVercel) {
+  store = { sessions: {} };
+} else {
+  const DATA_DIR = path.join(__dirname, 'data');
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+
+  store = {
+    getSession(apiKey) {
+      try {
+        if (!fs.existsSync(SESSION_FILE)) return null;
+        return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'))[apiKey] || null;
+      } catch { return null; }
+    },
+    setSession(apiKey, data) {
+      try {
+        let sessions = {};
+        if (fs.existsSync(SESSION_FILE)) sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+        sessions[apiKey] = data;
+        fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+      } catch {}
+    },
+    deleteSession(apiKey) {
+      try {
+        if (!fs.existsSync(SESSION_FILE)) return;
+        const sessions = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+        delete sessions[apiKey];
+        fs.writeFileSync(SESSION_FILE, JSON.stringify(sessions, null, 2));
+      } catch {}
+    }
+  };
+}
+
+// Session helpers
+function getSession(apiKey) {
+  return isVercel ? store.sessions[apiKey] || null : store.getSession(apiKey);
+}
+
+function setSession(apiKey, data) {
+  isVercel ? store.sessions[apiKey] = data : store.setSession(apiKey, data);
+}
+
+function deleteSession(apiKey) {
+  isVercel ? delete store.sessions[apiKey] : store.deleteSession(apiKey);
 }
 
 // =============================================
-// API KEY MIDDLEWARE
+// HELPERS
 // =============================================
-const authMiddleware = (req, res, next) => {
+function getParams(req) {
+  const q = req.query || {};
+  const b = req.body || {};
+  return { ...q, ...b };
+}
+
+// =============================================
+// ORDERKOUTA CONFIG
+// =============================================
+const OK_URL = 'https://app.orderkuota.com/api/v2';
+
+function getHeaders(cookies = {}) {
+  const h = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'okhttp/5.3.2'
+  };
+  const c = Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+  if (c) h['Cookie'] = c;
+  return h;
+}
+
+function getBody(extra = {}) {
+  return new URLSearchParams({
+    request_time: Date.now(),
+    phone_android_version: '12',
+    app_version_code: '260204',
+    app_version_name: '26.02.04',
+    phone_model: 'Xiaomi 13',
+    ui_mode: 'dark',
+    ...extra
+  }).toString();
+}
+
+// =============================================
+// ORDERKOUTA ENDPOINTS
+// =============================================
+
+// GET/POST /api/orderkouta/get-otp
+app.all('/api/orderkouta/get-otp', async (req, res) => {
+  const { username, password } = getParams(req);
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
 
-  if (!apiKey) {
-    return res.status(401).json({
+  if (!username || !password) {
+    return res.status(400).json({
       status: false,
-      message: 'API Key wajib. Gunakan header x-api-key',
-      code: 401
+      message: 'Parameter wajib: username & password'
     });
   }
 
-  if (apiKey !== process.env.RAMZZPAY_API_KEY) {
-    return res.status(403).json({
+  const session = getSession(apiKey);
+  if (session?.authenticated) {
+    return res.json({
       status: false,
-      message: 'API Key tidak valid',
-      code: 403
+      message: 'Sudah login. Gunakan /logout dulu untuk login ulang.'
     });
   }
 
-  next();
-};
+  try {
+    const response = await axios.post(`${OK_URL}/login`, getBody({ username, password }), {
+      headers: getHeaders(),
+      timeout: 15000
+    });
 
-// =============================================
-// API ROUTES
-// =============================================
-app.use('/api/orderkouta', authMiddleware, orderkouta);
-app.use('/api/pakasir', authMiddleware, pakasir);
+    const cookies = {};
+    const sc = response.headers['set-cookie'];
+    if (Array.isArray(sc)) {
+      sc.forEach(c => {
+        const m = c.match(/^([^=]+)=([^;]+)/);
+        if (m) cookies[m[1]] = m[2];
+      });
+    }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({
+    const data = response.data;
+
+    if (data.success) {
+      setSession(apiKey, {
+        username,
+        cookies,
+        otpSent: true,
+        authenticated: false,
+        createdAt: new Date().toISOString()
+      });
+
+      return res.json({
+        status: true,
+        message: `OTP terkirim ke ${data.results?.otp_value || username}`,
+        data: {
+          otp_method: data.results?.otp || 'WhatsApp',
+          masked_phone: data.results?.otp_value || username
+        },
+        next: '/api/orderkouta/verify-otp?otp=KODE_OTP'
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'Gagal mengirim OTP'
+    });
+
+  } catch (err) {
+    console.error('[GET-OTP ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server OrderKouta tidak merespons: ' + err.message
+    });
+  }
+});
+
+// GET/POST /api/orderkouta/verify-otp
+app.all('/api/orderkouta/verify-otp', async (req, res) => {
+  const { otp } = getParams(req);
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+
+  if (!otp) {
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: otp'
+    });
+  }
+
+  const session = getSession(apiKey);
+  if (!session?.otpSent) {
+    return res.status(400).json({
+      status: false,
+      message: 'Belum request OTP. Buka /get-otp dulu.'
+    });
+  }
+
+  if (session.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Sudah login. Gunakan /logout dulu.'
+    });
+  }
+
+  try {
+    const response = await axios.post(
+      `${OK_URL}/login`,
+      getBody({ username: session.username, password: otp }),
+      { headers: getHeaders(session.cookies), timeout: 15000 }
+    );
+
+    const data = response.data;
+
+    if (data.success && data.results?.token) {
+      setSession(apiKey, {
+        ...session,
+        authenticated: true,
+        token: data.results.token,
+        userId: data.results.id || '',
+        name: data.results.name || session.username,
+        saldo: data.results.saldo || 0,
+        verifiedAt: new Date().toISOString()
+      });
+
+      return res.json({
+        status: true,
+        message: `Login berhasil! Selamat datang, ${data.results.name || session.username}`,
+        data: {
+          token: data.results.token,
+          name: data.results.name || session.username,
+          user_id: data.results.id || '',
+          saldo: data.results.saldo || 0
+        },
+        next: '/api/orderkouta/mutasi'
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'OTP salah atau expired'
+    });
+
+  } catch (err) {
+    console.error('[VERIFY-OTP ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server OrderKouta tidak merespons: ' + err.message
+    });
+  }
+});
+
+// GET /api/orderkouta/profile
+app.get('/api/orderkouta/profile', (req, res) => {
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const session = getSession(apiKey);
+
+  if (!session?.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Belum login. Buka /get-otp dulu.',
+      authenticated: false
+    });
+  }
+
+  return res.json({
     status: true,
-    message: 'RAMZZPAY API running',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: isVercel ? 'vercel' : 'local'
+    authenticated: true,
+    data: {
+      name: session.name,
+      user_id: session.userId,
+      saldo: session.saldo || 0,
+      username: session.username,
+      login_at: session.verifiedAt || '-'
+    }
+  });
+});
+
+// GET /api/orderkouta/mutasi
+app.get('/api/orderkouta/mutasi', async (req, res) => {
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  const page = parseInt(req.query.page) || 1;
+
+  const session = getSession(apiKey);
+  if (!session?.authenticated) {
+    return res.json({
+      status: false,
+      message: 'Belum login. Buka /get-otp dulu.',
+      authenticated: false
+    });
+  }
+
+  try {
+    const body = getBody({
+      auth_token: session.token,
+      auth_username: session.username,
+      'requests[0]': 'account',
+      'requests[qris_history][page]': page,
+      'requests[qris_history][keterangan]': req.query.keterangan || '',
+      'requests[qris_history][jumlah]': req.query.jumlah || '',
+      'requests[qris_history][dari_tanggal]': req.query.dari || '',
+      'requests[qris_history][ke_tanggal]': req.query.ke || ''
+    });
+
+    const response = await axios.post(
+      `${OK_URL}/qris/mutasi/${session.userId}`,
+      body,
+      { headers: getHeaders(session.cookies), timeout: 15000 }
+    );
+
+    const data = response.data;
+
+    if (data.success) {
+      return res.json({
+        status: true,
+        authenticated: true,
+        data: {
+          account: data.account?.results || {},
+          mutasi: data.qris_history?.results || [],
+          page: page,
+          total: data.qris_history?.total || 0
+        }
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'Gagal mengambil mutasi'
+    });
+
+  } catch (err) {
+    console.error('[MUTASI ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server OrderKouta tidak merespons: ' + err.message
+    });
+  }
+});
+
+// GET/POST /api/orderkouta/logout
+app.all('/api/orderkouta/logout', (req, res) => {
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  deleteSession(apiKey);
+
+  return res.json({
+    status: true,
+    message: 'Logout berhasil. Sesi telah dihapus.',
+    next: '/api/orderkouta/get-otp'
   });
 });
 
 // =============================================
-// LANDING PAGE (untuk Vercel, render inline)
+// PAKASIR CONFIG
 // =============================================
-app.get('/', (req, res) => {
-  // Kalo di Vercel, render HTML inline karena static file kadang error
-  if (isVercel) {
-    return res.send(getLandingPageHTML());
+const PAKASIR_URL = 'https://app.pakasir.com/api';
+
+// =============================================
+// PAKASIR ENDPOINTS
+// =============================================
+
+// ALL /api/pakasir/create
+app.all('/api/pakasir/create', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
+
+  if (!project || !order_id || !amount || !pakasir_api_key) {
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
+    });
   }
-  // Kalo di local, pake static file
+
+  try {
+    const response = await axios.post(
+      `${PAKASIR_URL}/transactioncreate/qris`,
+      { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      {
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'RAMZZPAY/1.0' },
+        timeout: 15000
+      }
+    );
+
+    const data = response.data;
+
+    if (data.payment) {
+      return res.json({
+        status: true,
+        message: 'Transaksi berhasil dibuat',
+        data: {
+          payment_method: data.payment.payment_method || 'qris',
+          payment_number: data.payment.payment_number,
+          total_payment: data.payment.total_payment,
+          fee: data.payment.fee || 0,
+          expired_at: data.payment.expired_at,
+          project: data.payment.project,
+          order_id: data.payment.order_id
+        }
+      });
+    }
+
+    return res.status(400).json({
+      status: false,
+      message: data.message || 'Gagal membuat transaksi'
+    });
+
+  } catch (err) {
+    console.error('[PAKASIR CREATE ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server Pakasir error: ' + err.message
+    });
+  }
+});
+
+// ALL /api/pakasir/check
+app.all('/api/pakasir/check', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
+
+  if (!project || !order_id || !amount || !pakasir_api_key) {
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
+    });
+  }
+
+  try {
+    const response = await axios.get(`${PAKASIR_URL}/transactiondetail`, {
+      params: { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      headers: { 'User-Agent': 'RAMZZPAY/1.0' },
+      timeout: 10000
+    });
+
+    return res.json({
+      status: true,
+      message: 'Status transaksi ditemukan',
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error('[PAKASIR CHECK ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server Pakasir error: ' + err.message
+    });
+  }
+});
+
+// ALL /api/pakasir/cancel
+app.all('/api/pakasir/cancel', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
+
+  if (!project || !order_id || !amount || !pakasir_api_key) {
+    return res.status(400).json({
+      status: false,
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
+    });
+  }
+
+  try {
+    const response = await axios.post(
+      `${PAKASIR_URL}/transactioncancel`,
+      { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      {
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'RAMZZPAY/1.0' },
+        timeout: 10000
+      }
+    );
+
+    return res.json({
+      status: true,
+      message: 'Transaksi berhasil dibatalkan',
+      data: response.data
+    });
+
+  } catch (err) {
+    console.error('[PAKASIR CANCEL ERROR]', err.message);
+    return res.status(502).json({
+      status: false,
+      message: 'Server Pakasir error: ' + err.message
+    });
+  }
+});
+
+// GET /api/pakasir/methods
+app.get('/api/pakasir/methods', (req, res) => {
+  return res.json({
+    status: true,
+    message: 'Daftar metode pembayaran',
+    data: [
+      { id: 'qris', name: 'QRIS', min: 1000, max: 5000000 },
+      { id: 'va_bca', name: 'Virtual Account BCA', min: 10000, max: 100000000 },
+      { id: 'va_mandiri', name: 'Virtual Account Mandiri', min: 10000, max: 100000000 },
+      { id: 'va_bni', name: 'Virtual Account BNI', min: 10000, max: 100000000 },
+      { id: 'va_bri', name: 'Virtual Account BRI', min: 10000, max: 100000000 }
+    ]
+  });
+});
+
+// =============================================
+// HTML PAGES
+// =============================================
+
+// Landing Page
+app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Docs Page
 app.get('/docs', (req, res) => {
-  if (isVercel) {
-    return res.send(getDocsPageHTML());
-  }
   res.sendFile(path.join(__dirname, 'public', 'docs.html'));
 });
 
@@ -110,283 +528,52 @@ app.get('/docs', (req, res) => {
 // 404 HANDLER
 // =============================================
 app.use((req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({
-      status: false,
-      message: `Endpoint ${req.method} ${req.path} tidak ditemukan`,
-      code: 404
-    });
+  if (req.accepts('html')) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html lang="id">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>404 - RAMZZPAY</title>
+        <style>
+          body {
+            font-family: 'Inter', sans-serif;
+            background: #080c14;
+            color: #e8edf5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+          }
+          h1 { font-size: 6rem; margin: 0; background: linear-gradient(135deg, #60a5fa, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+          p { color: #9aafc9; margin: 16px 0 32px; }
+          a { color: #3b82f6; text-decoration: none; font-weight: 600; border: 1px solid #1e3a5f; padding: 10px 24px; border-radius: 50px; transition: 0.3s; }
+          a:hover { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
+        </style>
+      </head>
+      <body>
+        <div>
+          <h1>404</h1>
+          <p>Halaman tidak ditemukan</p>
+          <a href="/">Kembali ke Beranda</a>
+        </div>
+      </body>
+      </html>
+    `);
   }
-
-  res.status(404).send(`
-    <html>
-    <head><title>404 - RAMZZPAY</title>
-    <style>body{font-family:sans-serif;background:#0a0a0f;color:#e2e8f0;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;text-align:center}h1{font-size:80px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}a{color:#60a5fa}</style>
-    </head>
-    <body><div><h1>404</h1><p>Halaman ga ketemu.</p><p><a href="/">← Balik</a></p></div></body></html>`);
+  res.status(404).json({ status: false, message: 'Route tidak ditemukan' });
 });
 
 // =============================================
-// ERROR HANDLER
+// START SERVER
 // =============================================
-app.use((err, req, res, next) => {
-  console.error('ERROR:', err.message);
-
-  if (req.path.startsWith('/api/')) {
-    return res.status(500).json({
-      status: false,
-      message: 'Internal error: ' + err.message,
-      code: 500
-    });
-  }
-
-  res.status(500).send(`
-    <html>
-    <head><title>500 - RAMZZPAY</title>
-    <style>body{font-family:sans-serif;background:#0a0a0f;color:#e2e8f0;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;text-align:center}h1{color:#ef4444;font-size:60px}a{color:#60a5fa}</style>
-    </head>
-    <body><div><h1>500</h1><p>Server error.</p><p><a href="/">← Balik</a></p></div></body></html>`);
+app.listen(PORT, () => {
+  console.log(`RAMZZPAY running at http://localhost:${PORT}`);
+  console.log(`Landing Page: http://localhost:${PORT}/`);
+  console.log(`API Docs: http://localhost:${PORT}/docs`);
 });
 
-// =============================================
-// START SERVER (cuma di local)
-// =============================================
-if (!isVercel) {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`RAMZZPAY running on http://localhost:${PORT}`);
-    console.log(`Docs: http://localhost:${PORT}/docs`);
-  });
-}
-
-// Export buat Vercel
 module.exports = app;
-
-// =============================================
-// INLINE HTML BUAT VERCEL
-// =============================================
-
-function getLandingPageHTML() {
-  return `<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAMZZPAY — Payment Gateway API</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e2e8f0;line-height:1.6}
-    .container{max-width:1000px;margin:0 auto;padding:20px}
-    header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid #1e293b;margin-bottom:40px}
-    .logo{font-size:22px;font-weight:900}
-    .logo .hl{background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    nav a{color:#94a3b8;text-decoration:none;margin-left:20px}
-    nav a:hover{color:#fff}
-    .hero{padding:40px 0;text-align:center}
-    .badge{display:inline-block;background:rgba(59,130,246,.1);color:#60a5fa;padding:6px 14px;border-radius:20px;font-size:12px;margin-bottom:16px}
-    .hero h1{font-size:36px;margin-bottom:12px}
-    .gr{background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .hero p{color:#94a3b8;max-width:600px;margin:0 auto 24px}
-    .btn{display:inline-block;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:0 6px}
-    .btn-p{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff}
-    .btn-o{border:1px solid #3b82f6;color:#3b82f6}
-    .stats{display:flex;justify-content:center;gap:32px;margin-top:32px}
-    .stat-val{font-size:24px;font-weight:900;background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block}
-    .stat-lbl{font-size:12px;color:#64748b}
-    .features{padding:40px 0}
-    .features h2{text-align:center;margin-bottom:24px}
-    .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-    .fcard{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155}
-    .fcard h3{font-size:16px;margin-bottom:8px}
-    .fcard p{color:#94a3b8;font-size:14px}
-    .endpoints{padding:40px 0}
-    .endpoints h2{text-align:center;margin-bottom:24px}
-    .egroup{background:#1e293b;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #334155}
-    .eitem{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0f172a;border-radius:6px;margin-bottom:6px}
-    .method{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700}
-    .post{background:rgba(16,185,129,.2);color:#10b981}
-    .get{background:rgba(59,130,246,.2);color:#3b82f6}
-    .path{font-family:monospace;font-size:13px}
-    .desc{color:#64748b;margin-left:auto;font-size:12px}
-    .cta{text-align:center;padding:40px;background:#1e293b;border-radius:12px;margin:30px 0}
-    footer{text-align:center;padding:20px;border-top:1px solid #1e293b;color:#64748b;margin-top:30px}
-    footer a{color:#60a5fa;text-decoration:none}
-    @media(max-width:600px){.hero h1{font-size:24px}.stats{flex-direction:column;gap:16px}.eitem{flex-direction:column;align-items:flex-start}}
-  </style>
-</head>
-<body>
-<div class="container">
-<header>
-  <div class="logo">⚡ RAMZZ<span class="hl">PAY</span></div>
-  <nav>
-    <a href="/docs">Dokumentasi</a>
-    <a href="/api/health">API</a>
-  </nav>
-</header>
-
-<section class="hero">
-  <div class="badge">v1.0.0 • Production Ready</div>
-  <h1>Payment Gateway API<br><span class="gr">Tanpa Ribet. Tanpa Biaya.</span></h1>
-  <p>Integrasi OrderKouta & Pakasir dalam satu API. Untuk reseller, developer, dan pebisnis yang butuh solusi pembayaran QRIS cepat.</p>
-  <div>
-    <a href="/docs" class="btn btn-p">Mulai Sekarang →</a>
-    <a href="#endpoints" class="btn btn-o">Lihat Endpoint</a>
-  </div>
-  <div class="stats">
-    <div><span class="stat-val">2</span><span class="stat-lbl">Platform</span></div>
-    <div><span class="stat-val">7+</span><span class="stat-lbl">Endpoint</span></div>
-    <div><span class="stat-val"><100ms</span><span class="stat-lbl">Response</span></div>
-  </div>
-</section>
-
-<section class="features">
-  <h2>Kenapa RAMZZPAY?</h2>
-  <div class="fgrid">
-    <div class="fcard"><h3>🔄 Auto Sync Mutasi</h3><p>Pantau pembayaran QRIS real-time tanpa buka aplikasi manual.</p></div>
-    <div class="fcard"><h3>⚡ QRIS Dinamis</h3><p>Generate QR code dengan nominal custom otomatis.</p></div>
-    <div class="fcard"><h3>🛡️ Rate Limiting</h3><p>Keamanan built-in. Ga perlu takut spam.</p></div>
-    <div class="fcard"><h3>📦 Serverless Ready</h3><p>Deploy ke Vercel gratis. Ga perlu server mahal.</p></div>
-  </div>
-</section>
-
-<section id="endpoints" class="endpoints">
-  <h2>Endpoint Tersedia</h2>
-  <div class="egroup">
-    <h3>📱 OrderKouta</h3>
-    <div class="eitem"><span class="method post">POST</span><span class="path">/api/orderkouta/get-otp</span><span class="desc">Request OTP</span></div>
-    <div class="eitem"><span class="method post">POST</span><span class="path">/api/orderkouta/verify-otp</span><span class="desc">Verifikasi OTP</span></div>
-    <div class="eitem"><span class="method get">GET</span><span class="path">/api/orderkouta/mutasi</span><span class="desc">Riwayat mutasi</span></div>
-    <div class="eitem"><span class="method get">GET</span><span class="path">/api/orderkouta/profile</span><span class="desc">Info akun</span></div>
-    <div class="eitem"><span class="method post">POST</span><span class="path">/api/orderkouta/logout</span><span class="desc">Logout</span></div>
-  </div>
-  <div class="egroup">
-    <h3>💳 Pakasir</h3>
-    <div class="eitem"><span class="method post">POST</span><span class="path">/api/pakasir/create</span><span class="desc">Buat transaksi</span></div>
-    <div class="eitem"><span class="method get">GET</span><span class="path">/api/pakasir/check</span><span class="desc">Cek status</span></div>
-    <div class="eitem"><span class="method post">POST</span><span class="path">/api/pakasir/cancel</span><span class="desc">Batalkan</span></div>
-    <div class="eitem"><span class="method get">GET</span><span class="path">/api/pakasir/methods</span><span class="desc">Metode bayar</span></div>
-  </div>
-</section>
-
-<section class="cta">
-  <h2>Siap Integrasi?</h2>
-  <p style="color:#94a3b8;margin-bottom:16px">Mulai sekarang, gratis selamanya.</p>
-  <a href="/docs" class="btn btn-p">Lihat Dokumentasi →</a>
-</section>
-
-<footer>
-  <p>© 2024 <strong>RAMZZPAY</strong> • Dibuat oleh RAMZZGANTENGBANGET</p>
-</footer>
-</div>
-</body>
-</html>`;
-}
-
-function getDocsPageHTML() {
-  return `<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dokumentasi API — RAMZZPAY</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:system-ui,sans-serif;background:#0a0a0f;color:#e2e8f0;line-height:1.6}
-    .container{max-width:900px;margin:0 auto;padding:20px}
-    header{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid #1e293b;margin-bottom:30px}
-    .logo{font-size:20px;font-weight:900}
-    .hl{background:linear-gradient(135deg,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    nav a{color:#94a3b8;text-decoration:none;margin-left:16px}
-    h1{font-size:28px;margin-bottom:12px}
-    h2{font-size:22px;margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid #3b82f6}
-    h3{font-size:17px;margin-bottom:8px}
-    p{color:#94a3b8;margin-bottom:12px}
-    code{background:#1e293b;padding:2px 8px;border-radius:4px;color:#60a5fa;font-family:monospace}
-    pre{background:#0f172a;padding:14px;border-radius:8px;overflow-x:auto;font-size:13px;margin:10px 0}
-    .doc-card{background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;margin-bottom:16px}
-    .meta{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .method{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700}
-    .post{background:rgba(16,185,129,.2);color:#10b981}
-    .get{background:rgba(59,130,246,.2);color:#3b82f6}
-    footer{text-align:center;padding:20px;border-top:1px solid #1e293b;color:#64748b;margin-top:30px}
-    footer a{color:#60a5fa;text-decoration:none}
-  </style>
-</head>
-<body>
-<div class="container">
-<header>
-  <div class="logo">⚡ RAMZZ<span class="hl">PAY</span></div>
-  <nav><a href="/">Beranda</a><a href="/docs">Dokumentasi</a></nav>
-</header>
-
-<h1>📖 Dokumentasi API</h1>
-<p>Base URL: <code>https://ramzzpay.vercel.app</code></p>
-
-<h2>🔑 Autentikasi</h2>
-<p>Semua request wajib menyertakan API Key:</p>
-<pre>x-api-key: rahasia_super_aman_123</pre>
-
-<h2>📱 OrderKouta</h2>
-
-<div class="doc-card">
-  <h3>Request OTP</h3>
-  <div class="meta"><span class="method post">POST</span><code>/api/orderkouta/get-otp</code></div>
-  <p>Body (JSON):</p>
-  <pre>{"username":"0821xxxxxx","password":"password_akun"}</pre>
-</div>
-
-<div class="doc-card">
-  <h3>Verifikasi OTP</h3>
-  <div class="meta"><span class="method post">POST</span><code>/api/orderkouta/verify-otp</code></div>
-  <p>Body (JSON):</p>
-  <pre>{"otp":"123456"}</pre>
-</div>
-
-<div class="doc-card">
-  <h3>Mutasi QRIS</h3>
-  <div class="meta"><span class="method get">GET</span><code>/api/orderkouta/mutasi?page=1</code></div>
-</div>
-
-<div class="doc-card">
-  <h3>Profile</h3>
-  <div class="meta"><span class="method get">GET</span><code>/api/orderkouta/profile</code></div>
-</div>
-
-<div class="doc-card">
-  <h3>Logout</h3>
-  <div class="meta"><span class="method post">POST</span><code>/api/orderkouta/logout</code></div>
-</div>
-
-<h2>💳 Pakasir</h2>
-
-<div class="doc-card">
-  <h3>Buat Transaksi</h3>
-  <div class="meta"><span class="method post">POST</span><code>/api/pakasir/create</code></div>
-  <p>Body (JSON):</p>
-  <pre>{"project":"slug_proyek","order_id":"INV-001","amount":10000,"pakasir_api_key":"key_pakasir"}</pre>
-</div>
-
-<div class="doc-card">
-  <h3>Cek Status</h3>
-  <div class="meta"><span class="method get">GET</span><code>/api/pakasir/check?project=...&order_id=...&amount=...&pakasir_api_key=...</code></div>
-</div>
-
-<div class="doc-card">
-  <h3>Batalkan</h3>
-  <div class="meta"><span class="method post">POST</span><code>/api/pakasir/cancel</code></div>
-  <p>Body (JSON):</p>
-  <pre>{"project":"slug_proyek","order_id":"INV-001","amount":10000,"pakasir_api_key":"key_pakasir"}</pre>
-</div>
-
-<div class="doc-card">
-  <h3>Metode Pembayaran</h3>
-  <div class="meta"><span class="method get">GET</span><code>/api/pakasir/methods</code></div>
-</div>
-
-<footer>
-  <p>© 2024 <strong>RAMZZPAY</strong> • <a href="/">← Kembali ke Beranda</a></p>
-</footer>
-</div>
-</body>
-</html>`;
-}
