@@ -1,0 +1,516 @@
+/* =============================================
+   RAMZZPAY - DARK THEME STYLING
+   Support: Landing Page + Dokumentasi
+   ============================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0a0a0f;
+  color: #e2e8f0;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* =============================================
+   HEADER
+   ============================================= */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.logo-icon {
+  margin-right: 8px;
+}
+
+.logo-text .highlight {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+}
+
+nav a {
+  color: #94a3b8;
+  text-decoration: none;
+  padding: 8px 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+nav a:hover {
+  color: #fff;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* =============================================
+   HERO (Landing Page)
+   ============================================= */
+.hero {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  padding: 60px 0;
+  flex-wrap: wrap;
+}
+
+.hero-content {
+  flex: 1;
+  min-width: 300px;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.hero h1 {
+  font-size: 40px;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+  color: #94a3b8;
+  margin-bottom: 24px;
+  font-size: 16px;
+  max-width: 500px;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+}
+
+.btn-outline:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hero-code {
+  flex: 1;
+  min-width: 300px;
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #334155;
+}
+
+.hero-code pre {
+  margin: 0;
+  font-size: 13px;
+  color: #e2e8f0;
+  overflow-x: auto;
+}
+
+.hero-code code {
+  color: #60a5fa;
+}
+
+/* =============================================
+   FEATURES (Landing Page)
+   ============================================= */
+.features {
+  padding: 60px 0;
+}
+
+.features h2 {
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 28px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.feature-card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #334155;
+  transition: border-color 0.2s;
+}
+
+.feature-card:hover {
+  border-color: #3b82f6;
+}
+
+.feature-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.feature-card h3 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.feature-card p {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* =============================================
+   ENDPOINTS (Landing Page)
+   ============================================= */
+.endpoints {
+  padding: 60px 0;
+}
+
+.endpoints h2 {
+  text-align: center;
+  margin-bottom: 40px;
+  font-size: 28px;
+}
+
+.endpoint-list {
+  display: grid;
+  gap: 32px;
+}
+
+.endpoint-group {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #334155;
+}
+
+.endpoint-group h3 {
+  margin-bottom: 16px;
+  font-size: 18px;
+}
+
+.endpoint-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #0f172a;
+  flex-wrap: wrap;
+}
+
+.method {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.method.post {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.method.get {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.path {
+  font-family: monospace;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.desc {
+  color: #64748b;
+  margin-left: auto;
+  font-size: 13px;
+}
+
+/* =============================================
+   CTA (Landing Page)
+   ============================================= */
+.cta {
+  text-align: center;
+  padding: 60px 0;
+  background: #1e293b;
+  border-radius: 12px;
+  margin: 40px 0;
+  border: 1px solid #334155;
+}
+
+.cta h2 {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.cta p {
+  color: #94a3b8;
+  margin-bottom: 24px;
+}
+
+/* =============================================
+   DOCS (Halaman Dokumentasi)
+   ============================================= */
+.docs {
+  padding: 20px 0 60px;
+}
+
+.docs h1 {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.docs > p {
+  color: #94a3b8;
+  margin-bottom: 32px;
+  line-height: 1.8;
+}
+
+.docs > p code {
+  background: #1e293b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #60a5fa;
+}
+
+.docs section {
+  margin-bottom: 48px;
+}
+
+.docs section h2 {
+  font-size: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.docs section > p {
+  color: #94a3b8;
+  margin-bottom: 20px;
+  line-height: 1.8;
+}
+
+.docs section > p code {
+  background: #1e293b;
+  padding: 2px 10px;
+  border-radius: 4px;
+  color: #60a5fa;
+}
+
+.doc-item {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid #334155;
+  margin-bottom: 20px;
+}
+
+.doc-item h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.doc-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.doc-meta code {
+  font-family: monospace;
+  font-size: 15px;
+  background: #0f172a;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.doc-item h4 {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+pre {
+  background: #0f172a;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  margin: 12px 0;
+  border: 1px solid #1e293b;
+}
+
+code {
+  font-family: 'Fira Code', 'Courier New', monospace;
+  color: #60a5fa;
+}
+
+/* =============================================
+   FOOTER
+   ============================================= */
+footer {
+  text-align: center;
+  padding: 30px 0;
+  border-top: 1px solid #1e293b;
+  color: #64748b;
+  margin-top: 40px;
+}
+
+footer a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* =============================================
+   RESPONSIVE
+   ============================================= */
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    padding: 30px 0;
+  }
+
+  .hero h1 {
+    font-size: 28px;
+  }
+
+  .hero-code {
+    width: 100%;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .endpoint-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .desc {
+    margin-left: 0;
+  }
+
+  .doc-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+/* =============================================
+   SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
