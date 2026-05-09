@@ -1,5 +1,6 @@
 // =============================================
-// RAMZZPAY API - Node.js + Express Server
+// RAMZZPAY API v2.7 - Node.js + Express Server
+// Hanya mendukung OTP via EMAIL
 // =============================================
 
 const express = require('express');
@@ -90,11 +91,10 @@ function getParams(req) {
 }
 
 // =============================================
-// ORDERKOUTA CONFIG (UPDATE)
+// ORDERKOUTA CONFIG
 // =============================================
 const OK_URL = 'https://app.orderkuota.com/api/v2';
 
-// User-Agent list buat rotasi biar gak ketahuan bot
 const USER_AGENTS = [
   'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
   'Mozilla/5.0 (Linux; Android 14; Pixel 8 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Mobile Safari/537.36',
@@ -173,7 +173,6 @@ app.all('/api/orderkouta/get-otp', async (req, res) => {
       validateStatus: (status) => status < 500,
     });
 
-    // Cek status 469
     if (response.status === 469) {
       return res.status(429).json({
         status: false,
@@ -193,6 +192,19 @@ app.all('/api/orderkouta/get-otp', async (req, res) => {
     const data = response.data;
 
     if (data.success) {
+      
+      // =============================================
+      // VALIDASI: Hanya terima OTP via EMAIL
+      // =============================================
+      const otpMethod = (data.results?.otp || '').toLowerCase();
+      
+      if (otpMethod !== 'email') {
+        return res.status(400).json({
+          status: false,
+          message: `Akun ini OTP via ${data.results?.otp || 'WhatsApp/SMS'}. Hanya akun dengan OTP Email yang didukung. Silakan gunakan akun OrderKouta yang terdaftar dengan email.`
+        });
+      }
+
       setSession(apiKey, {
         username,
         cookies,
@@ -203,10 +215,10 @@ app.all('/api/orderkouta/get-otp', async (req, res) => {
 
       return res.json({
         status: true,
-        message: `OTP terkirim ke ${data.results?.otp_value || username}`,
+        message: `OTP terkirim via email ke ${data.results?.otp_value || username}`,
         data: {
-          otp_method: data.results?.otp || 'WhatsApp',
-          masked_phone: data.results?.otp_value || username
+          otp_method: 'Email',
+          masked_email: data.results?.otp_value || username
         },
         next: '/api/orderkouta/verify-otp?otp=KODE_OTP'
       });
@@ -619,8 +631,8 @@ app.use((req, res) => {
 // =============================================
 app.listen(PORT, () => {
   console.log(`RAMZZPAY running at http://localhost:${PORT}`);
-  console.log(`Landing Page: http://localhost:${PORT}/`);
-  console.log(`API Docs: http://localhost:${PORT}/docs`);
+  console.log(`Landing: http://localhost:${PORT}/`);
+  console.log(`Docs: http://localhost:${PORT}/docs`);
 });
 
 module.exports = app;
