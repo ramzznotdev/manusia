@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAMZZPAY — Payment Gateway API</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">RAMZZ<span class="highlight">PAY</span></span>
+      </div>
+      <nav>
+        <a href="/docs">Dokumentasi</a>
+        <a href="https://github.com/ramzzgantengbanget/ramzzpay" target="_blank">GitHub</a>
+        <a href="#endpoints">API</a>
+      </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-content">
+        <div class="badge">v1.0.0 • Production Ready</div>
+        <h1>
+          Payment Gateway API<br>
+          <span class="gradient-text">Tanpa Ribet. Tanpa Biaya.</span>
+        </h1>
+        <p>
+          Integrasi OrderKouta & Pakasir dalam satu API. 
+          Dibuat untuk para reseller, developer, dan pebisnis yang butuh solusi pembayaran QRIS cepat.
+        </p>
+        <div class="hero-buttons">
+          <a href="/docs" class="btn btn-primary">Mulai Sekarang →</a>
+          <a href="#endpoints" class="btn btn-outline">Lihat Endpoint</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-value">2</span>
+            <span class="stat-label">Platform</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">7+</span>
+            <span class="stat-label">Endpoint</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">&lt;100ms</span>
+            <span class="stat-label">Response</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-code">
+        <pre><code>// RAMZZPAY API Example
+fetch('/api/orderkouta/mutasi', {
+  headers: {
+    'x-api-key': 'your_key'
+  }
+})
+.then(res => res.json())
+.then(data => {
+  console.log('Mutasi:', data);
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+      <h2>Kenapa RAMZZPAY?</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Auto Sync Mutasi</h3>
+          <p>Pantau pembayaran QRIS real-time tanpa buka aplikasi OrderKouta manual.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>QRIS Dinamis</h3>
+          <p>Generate QR code dengan nominal custom otomatis. Ga perlu edit manual.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>Rate Limiting</h3>
+          <p>Keamanan built-in dengan rate limiter. Ga perlu takut spam request.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📦</div>
+          <h3>Serverless Ready</h3>
+          <p>Deploy ke Vercel gratis. Ga perlu server mahal.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Endpoints Preview -->
+    <section id="endpoints" class="endpoints">
+      <h2>Endpoint Tersedia</h2>
+      <div class="endpoint-list">
+        <div class="endpoint-group">
+          <h3>📱 OrderKouta</h3>
+          <div class="endpoint-item">
+            <span class="method post">POST</span>
+            <span class="path">/api/orderkouta/get-otp</span>
+            <span class="desc">Request kode OTP</span>
+          </div>
+          <div class="endpoint-item">
+            <span class="method post">POST</span>
+            <span class="path">/api/orderkouta/verify-otp</span>
+            <span class="desc">Verifikasi OTP + Login</span>
+          </div>
+          <div class="endpoint-item">
+            <span class="method get">GET</span>
+            <span class="path">/api/orderkouta/mutasi</span>
+            <span class="desc">Ambil riwayat mutasi</span>
+          </div>
+          <div class="endpoint-item">
+            <span class="method get">GET</span>
+            <span class="path">/api/orderkouta/profile</span>
+            <span class="desc">Info akun & saldo</span>
+          </div>
+        </div>
+        <div class="endpoint-group">
+          <h3>💳 Pakasir</h3>
+          <div class="endpoint-item">
+            <span class="method post">POST</span>
+            <span class="path">/api/pakasir/create</span>
+            <span class="desc">Buat transaksi baru</span>
+          </div>
+          <div class="endpoint-item">
+            <span class="method get">GET</span>
+            <span class="path">/api/pakasir/check</span>
+            <span class="desc">Cek status transaksi</span>
+          </div>
+          <div class="endpoint-item">
+            <span class="method post">POST</span>
+            <span class="path">/api/pakasir/cancel</span>
+            <span class="desc">Batalkan transaksi</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <h2>Siap Integrasi?</h2>
+      <p>Mulai sekarang, gratis selamanya.</p>
+      <a href="/docs" class="btn btn-primary">Lihat Dokumentasi →</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <p>© 2024 <strong>RAMZZPAY</strong> • Dibuat oleh <a href="https://github.com/ramzzgantengbanget">RAMZZGANTENGBANGET</a></p>
+    </footer>
+  </div>
+</body>
+</html>
