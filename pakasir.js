@@ -3,39 +3,44 @@ const router = express.Router();
 const axios = require('axios');
 
 // =============================================
-// KONFIG PAKASIR
+// KONFIG
 // =============================================
-const PAKASIR_BASE_URL = 'https://app.pakasir.com/api';
+const PAKASIR_URL = 'https://app.pakasir.com/api';
 
 // =============================================
-// POST /api/pakasir/create
+// HELPER: Ambil param dari GET atau POST
 // =============================================
-router.post('/create', async (req, res) => {
-  const { project, order_id, amount, pakasir_api_key } = req.body;
+function getParams(req) {
+  const q = req.query || {};
+  const b = req.body || {};
+  return {
+    project: b.project || q.project || '',
+    order_id: b.order_id || q.order_id || '',
+    amount: Number(b.amount || q.amount || 0),
+    pakasir_api_key: b.pakasir_api_key || q.pakasir_api_key || ''
+  };
+}
+
+// =============================================
+// ALL /api/pakasir/create
+// GET: ?project=xxx&order_id=INV-001&amount=10000&pakasir_api_key=xxx
+// POST: JSON body
+// =============================================
+router.all('/create', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
 
   if (!project || !order_id || !amount || !pakasir_api_key) {
     return res.status(400).json({
       status: false,
-      message: 'project, order_id, amount, dan pakasir_api_key wajib diisi'
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
     });
   }
 
   try {
     const response = await axios.post(
-      `${PAKASIR_BASE_URL}/transactioncreate/qris`,
-      {
-        project,
-        order_id,
-        amount: parseInt(amount),
-        api_key: pakasir_api_key
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'RAMZZPAY/1.0'
-        },
-        timeout: 15000
-      }
+      `${PAKASIR_URL}/transactioncreate/qris`,
+      { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      { headers: { 'Content-Type': 'application/json', 'User-Agent': 'RAMZZPAY/1.0' }, timeout: 15000 }
     );
 
     const data = response.data;
@@ -63,7 +68,7 @@ router.post('/create', async (req, res) => {
 
   } catch (err) {
     console.error('[PAKASIR CREATE ERROR]', err.message);
-    return res.status(500).json({
+    return res.status(502).json({
       status: false,
       message: 'Server Pakasir error: ' + err.message
     });
@@ -71,46 +76,36 @@ router.post('/create', async (req, res) => {
 });
 
 // =============================================
-// GET /api/pakasir/check
+// ALL /api/pakasir/check
+// GET: ?project=xxx&order_id=INV-001&amount=10000&pakasir_api_key=xxx
+// POST: JSON body
 // =============================================
-router.get('/check', async (req, res) => {
-  const { project, order_id, amount, pakasir_api_key } = req.query;
+router.all('/check', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
 
   if (!project || !order_id || !amount || !pakasir_api_key) {
     return res.status(400).json({
       status: false,
-      message: 'project, order_id, amount, dan pakasir_api_key wajib diisi'
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
     });
   }
 
   try {
-    const response = await axios.get(
-      `${PAKASIR_BASE_URL}/transactiondetail`,
-      {
-        params: {
-          project,
-          order_id,
-          amount: parseInt(amount),
-          api_key: pakasir_api_key
-        },
-        headers: {
-          'User-Agent': 'RAMZZPAY/1.0'
-        },
-        timeout: 10000
-      }
-    );
-
-    const data = response.data;
+    const response = await axios.get(`${PAKASIR_URL}/transactiondetail`, {
+      params: { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      headers: { 'User-Agent': 'RAMZZPAY/1.0' },
+      timeout: 10000
+    });
 
     return res.json({
       status: true,
       message: 'Status transaksi ditemukan',
-      data
+      data: response.data
     });
 
   } catch (err) {
     console.error('[PAKASIR CHECK ERROR]', err.message);
-    return res.status(500).json({
+    return res.status(502).json({
       status: false,
       message: 'Server Pakasir error: ' + err.message
     });
@@ -118,47 +113,36 @@ router.get('/check', async (req, res) => {
 });
 
 // =============================================
-// POST /api/pakasir/cancel
+// ALL /api/pakasir/cancel
+// GET: ?project=xxx&order_id=INV-001&amount=10000&pakasir_api_key=xxx
+// POST: JSON body
 // =============================================
-router.post('/cancel', async (req, res) => {
-  const { project, order_id, amount, pakasir_api_key } = req.body;
+router.all('/cancel', async (req, res) => {
+  const { project, order_id, amount, pakasir_api_key } = getParams(req);
 
   if (!project || !order_id || !amount || !pakasir_api_key) {
     return res.status(400).json({
       status: false,
-      message: 'project, order_id, amount, dan pakasir_api_key wajib diisi'
+      message: 'Parameter wajib: project, order_id, amount, pakasir_api_key'
     });
   }
 
   try {
     const response = await axios.post(
-      `${PAKASIR_BASE_URL}/transactioncancel`,
-      {
-        project,
-        order_id,
-        amount: parseInt(amount),
-        api_key: pakasir_api_key
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'RAMZZPAY/1.0'
-        },
-        timeout: 10000
-      }
+      `${PAKASIR_URL}/transactioncancel`,
+      { project, order_id, amount: parseInt(amount), api_key: pakasir_api_key },
+      { headers: { 'Content-Type': 'application/json', 'User-Agent': 'RAMZZPAY/1.0' }, timeout: 10000 }
     );
-
-    const data = response.data;
 
     return res.json({
       status: true,
       message: 'Transaksi berhasil dibatalkan',
-      data
+      data: response.data
     });
 
   } catch (err) {
     console.error('[PAKASIR CANCEL ERROR]', err.message);
-    return res.status(500).json({
+    return res.status(502).json({
       status: false,
       message: 'Server Pakasir error: ' + err.message
     });
@@ -169,19 +153,16 @@ router.post('/cancel', async (req, res) => {
 // GET /api/pakasir/methods
 // =============================================
 router.get('/methods', (req, res) => {
-  // List metode pembayaran yang didukung Pakasir
-  const methods = [
-    { id: 'qris', name: 'QRIS', description: 'Scan QR code via mobile banking/e-wallet', min: 1000, max: 5000000 },
-    { id: 'va_bca', name: 'Virtual Account BCA', description: 'Transfer ke rekening BCA virtual', min: 10000, max: 100000000 },
-    { id: 'va_mandiri', name: 'Virtual Account Mandiri', description: 'Transfer ke rekening Mandiri virtual', min: 10000, max: 100000000 },
-    { id: 'va_bni', name: 'Virtual Account BNI', description: 'Transfer ke rekening BNI virtual', min: 10000, max: 100000000 },
-    { id: 'va_bri', name: 'Virtual Account BRI', description: 'Transfer ke rekening BRI virtual', min: 10000, max: 100000000 }
-  ];
-
   return res.json({
     status: true,
     message: 'Daftar metode pembayaran',
-    data: methods
+    data: [
+      { id: 'qris', name: 'QRIS', min: 1000, max: 5000000 },
+      { id: 'va_bca', name: 'Virtual Account BCA', min: 10000, max: 100000000 },
+      { id: 'va_mandiri', name: 'Virtual Account Mandiri', min: 10000, max: 100000000 },
+      { id: 'va_bni', name: 'Virtual Account BNI', min: 10000, max: 100000000 },
+      { id: 'va_bri', name: 'Virtual Account BRI', min: 10000, max: 100000000 }
+    ]
   });
 });
 
