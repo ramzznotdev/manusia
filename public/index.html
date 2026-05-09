@@ -3,155 +3,866 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RAMZZPAY — Payment Gateway API</title>
-  <link rel="stylesheet" href="style.css">
+  <title>RAMZZPAY — Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --card: #12121a;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --primary: #8b5cf6;
+      --primary2: #3b82f6;
+      --grad: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      --green: #10b981;
+      --red: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Particle Background */
+    #particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Layout */
+    .app {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: rgba(18, 18, 26, 0.95);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 10;
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar .logo {
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 30px;
+      background: var(--grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sidebar nav a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+
+    .sidebar nav a:hover,
+    .sidebar nav a.active {
+      background: rgba(139, 92, 246, 0.15);
+      color: #fff;
+    }
+
+    .sidebar .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.4;
+      }
+    }
+
+    /* Main Content */
+    .main {
+      margin-left: 260px;
+      flex: 1;
+      padding: 30px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+    }
+
+    .header .clock {
+      font-family: monospace;
+      font-size: 16px;
+      color: var(--muted);
+      background: var(--card);
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    /* Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .stat-card .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .stat-card .icon.purple {
+      background: rgba(139, 92, 246, 0.2);
+      color: #8b5cf6;
+    }
+    .stat-card .icon.blue {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+    }
+    .stat-card .icon.green {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+    .stat-card .icon.yellow {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+
+    .stat-card .value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .stat-card .label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* Sections */
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--grad);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+
+    .btn-success {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    td .amount {
+      font-weight: 600;
+    }
+    td .amount.in {
+      color: var(--green);
+    }
+    td .amount.out {
+      color: var(--red);
+    }
+
+    /* QR Section */
+    .qr-container {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .qr-code {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+
+    .qr-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: 12px;
+      z-index: 999;
+      animation: slideIn 0.3s ease;
+      display: none;
+    }
+
+    .toast.show {
+      display: block;
+    }
+    .toast.success {
+      border-color: var(--green);
+    }
+    .toast.error {
+      border-color: var(--red);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        padding: 16px;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .sidebar nav a {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .main {
+        margin-left: 0;
+        padding: 16px;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <header>
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">RAMZZ<span class="highlight">PAY</span></span>
-      </div>
+
+  <!-- Particle Background -->
+  <canvas id="particles"></canvas>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="logo">⚡ RAMZZPAY</div>
       <nav>
-        <a href="/docs">Dokumentasi</a>
-        <a href="https://github.com/ramzzgantengbanget/ramzzpay" target="_blank">GitHub</a>
-        <a href="#endpoints">API</a>
+        <a onclick="showSection('dashboard')" class="active" id="nav-dashboard">
+          <i class="fas fa-th-large"></i> Dashboard
+        </a>
+        <a onclick="showSection('login')" id="nav-login">
+          <i class="fas fa-sign-in-alt"></i> Login OTP
+        </a>
+        <a onclick="showSection('mutasi')" id="nav-mutasi">
+          <i class="fas fa-history"></i> Mutasi QRIS
+        </a>
+        <a onclick="showSection('qris')" id="nav-qris">
+          <i class="fas fa-qrcode"></i> QR Generator
+        </a>
+        <a onclick="showSection('pakasir')" id="nav-pakasir">
+          <i class="fas fa-wallet"></i> Pakasir
+        </a>
+        <a onclick="showSection('profile')" id="nav-profile">
+          <i class="fas fa-user"></i> Profile
+        </a>
       </nav>
-    </header>
+      <div style="position:absolute;bottom:20px;color:var(--muted);font-size:12px;">
+        <span class="status-dot"></span> System Online
+      </div>
+    </aside>
 
-    <!-- Hero Section -->
-    <section class="hero">
-      <div class="hero-content">
-        <div class="badge">v1.0.0 • Production Ready</div>
-        <h1>
-          Payment Gateway API<br>
-          <span class="gradient-text">Tanpa Ribet. Tanpa Biaya.</span>
-        </h1>
-        <p>
-          Integrasi OrderKouta & Pakasir dalam satu API. 
-          Dibuat untuk para reseller, developer, dan pebisnis yang butuh solusi pembayaran QRIS cepat.
-        </p>
-        <div class="hero-buttons">
-          <a href="/docs" class="btn btn-primary">Mulai Sekarang →</a>
-          <a href="#endpoints" class="btn btn-outline">Lihat Endpoint</a>
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Header -->
+      <div class="header">
+        <h1 id="page-title">Dashboard</h1>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+
+      <!-- ==================== DASHBOARD SECTION ==================== -->
+      <div id="section-dashboard" class="section active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="icon purple"><i class="fas fa-coins"></i></div>
+            <div class="value" id="saldo-display">Rp 0</div>
+            <div class="label">Saldo Aktif</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon blue"><i class="fas fa-exchange-alt"></i></div>
+            <div class="value" id="total-mutasi">0</div>
+            <div class="label">Total Mutasi Hari Ini</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon green"><i class="fas fa-check-circle"></i></div>
+            <div class="value" id="login-status">Belum Login</div>
+            <div class="label">Status Akun</div>
+          </div>
+          <div class="stat-card">
+            <div class="icon yellow"><i class="fas fa-clock"></i></div>
+            <div class="value" id="last-update">-</div>
+            <div class="label">Update Terakhir</div>
+          </div>
         </div>
-        <div class="hero-stats">
-          <div class="stat">
-            <span class="stat-value">2</span>
-            <span class="stat-label">Platform</span>
+
+        <div class="card">
+          <h2>🚀 Quick Actions</h2>
+          <p style="color:var(--muted);margin-bottom:16px;">Pilih menu di sidebar untuk mulai.</p>
+          <button class="btn btn-primary" onclick="showSection('login')">
+            <i class="fas fa-sign-in-alt"></i> Login Dulu
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== LOGIN SECTION ==================== -->
+      <div id="section-login" class="section">
+        <div class="card" style="max-width:500px;">
+          <h2>🔐 Login OrderKouta</h2>
+          <div class="form-group">
+            <label>Username (Nomor HP)</label>
+            <input type="text" id="login-username" placeholder="0821xxxxxx">
           </div>
-          <div class="stat">
-            <span class="stat-value">7+</span>
-            <span class="stat-label">Endpoint</span>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Password akun">
           </div>
-          <div class="stat">
-            <span class="stat-value">&lt;100ms</span>
-            <span class="stat-label">Response</span>
+          <button class="btn btn-primary" onclick="requestOTP()">
+            <i class="fas fa-paper-plane"></i> Kirim OTP
+          </button>
+
+          <hr style="border-color:var(--border);margin:20px 0;">
+
+          <div class="form-group">
+            <label>Kode OTP</label>
+            <input type="text" id="login-otp" placeholder="123456">
+          </div>
+          <button class="btn btn-success" onclick="verifyOTP()">
+            <i class="fas fa-check"></i> Verifikasi
+          </button>
+
+          <div id="login-result" style="margin-top:16px;font-size:14px;"></div>
+        </div>
+      </div>
+
+      <!-- ==================== MUTASI SECTION ==================== -->
+      <div id="section-mutasi" class="section">
+        <div class="card">
+          <h2>📋 Riwayat Mutasi QRIS</h2>
+          <button class="btn btn-primary" onclick="loadMutasi()" style="margin-bottom:16px;">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr><th>Tanggal</th><th>Jumlah</th><th>Keterangan</th><th>Status</th></tr>
+              </thead>
+              <tbody id="mutasi-table">
+                <tr><td colspan="4" style="text-align:center;color:var(--muted);">Login dulu buat liat mutasi</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-      <div class="hero-code">
-        <pre><code>// RAMZZPAY API Example
-fetch('/api/orderkouta/mutasi', {
-  headers: {
-    'x-api-key': 'your_key'
-  }
-})
-.then(res => res.json())
-.then(data => {
-  console.log('Mutasi:', data);
-});</code></pre>
-      </div>
-    </section>
 
-    <!-- Features -->
-    <section class="features">
-      <h2>Kenapa RAMZZPAY?</h2>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">🔄</div>
-          <h3>Auto Sync Mutasi</h3>
-          <p>Pantau pembayaran QRIS real-time tanpa buka aplikasi OrderKouta manual.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <h3>QRIS Dinamis</h3>
-          <p>Generate QR code dengan nominal custom otomatis. Ga perlu edit manual.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🛡️</div>
-          <h3>Rate Limiting</h3>
-          <p>Keamanan built-in dengan rate limiter. Ga perlu takut spam request.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📦</div>
-          <h3>Serverless Ready</h3>
-          <p>Deploy ke Vercel gratis. Ga perlu server mahal.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Endpoints Preview -->
-    <section id="endpoints" class="endpoints">
-      <h2>Endpoint Tersedia</h2>
-      <div class="endpoint-list">
-        <div class="endpoint-group">
-          <h3>📱 OrderKouta</h3>
-          <div class="endpoint-item">
-            <span class="method post">POST</span>
-            <span class="path">/api/orderkouta/get-otp</span>
-            <span class="desc">Request kode OTP</span>
-          </div>
-          <div class="endpoint-item">
-            <span class="method post">POST</span>
-            <span class="path">/api/orderkouta/verify-otp</span>
-            <span class="desc">Verifikasi OTP + Login</span>
-          </div>
-          <div class="endpoint-item">
-            <span class="method get">GET</span>
-            <span class="path">/api/orderkouta/mutasi</span>
-            <span class="desc">Ambil riwayat mutasi</span>
-          </div>
-          <div class="endpoint-item">
-            <span class="method get">GET</span>
-            <span class="path">/api/orderkouta/profile</span>
-            <span class="desc">Info akun & saldo</span>
-          </div>
-        </div>
-        <div class="endpoint-group">
-          <h3>💳 Pakasir</h3>
-          <div class="endpoint-item">
-            <span class="method post">POST</span>
-            <span class="path">/api/pakasir/create</span>
-            <span class="desc">Buat transaksi baru</span>
-          </div>
-          <div class="endpoint-item">
-            <span class="method get">GET</span>
-            <span class="path">/api/pakasir/check</span>
-            <span class="desc">Cek status transaksi</span>
-          </div>
-          <div class="endpoint-item">
-            <span class="method post">POST</span>
-            <span class="path">/api/pakasir/cancel</span>
-            <span class="desc">Batalkan transaksi</span>
+      <!-- ==================== QR SECTION ==================== -->
+      <div id="section-qris" class="section">
+        <div class="card">
+          <h2>📱 QRIS Generator</h2>
+          <div class="qr-container">
+            <div>
+              <div class="form-group">
+                <label>Nominal (Rp)</label>
+                <input type="number" id="qris-nominal" placeholder="10000" value="10000">
+              </div>
+              <button class="btn btn-primary" onclick="generateQR()">
+                <i class="fas fa-qrcode"></i> Generate QR
+              </button>
+              <div class="qr-actions" style="margin-top:16px;">
+                <button class="btn btn-secondary" onclick="copyQRIS()">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+                <button class="btn btn-secondary" onclick="downloadQR()">
+                  <i class="fas fa-download"></i> Download
+                </button>
+              </div>
+            </div>
+            <div>
+              <div id="qris-preview" style="background:#fff;padding:16px;border-radius:12px;min-width:200px;min-height:200px;display:flex;align-items:center;justify-content:center;color:#000;">
+                QR Code
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- CTA -->
-    <section class="cta">
-      <h2>Siap Integrasi?</h2>
-      <p>Mulai sekarang, gratis selamanya.</p>
-      <a href="/docs" class="btn btn-primary">Lihat Dokumentasi →</a>
-    </section>
+      <!-- ==================== PAKASIR SECTION ==================== -->
+      <div id="section-pakasir" class="section">
+        <div class="card" style="max-width:500px;">
+          <h2>💳 Buat Transaksi Pakasir</h2>
+          <div class="form-group">
+            <label>Slug Proyek</label>
+            <input type="text" id="pakasir-project" placeholder="slug_proyek">
+          </div>
+          <div class="form-group">
+            <label>Order ID</label>
+            <input type="text" id="pakasir-orderid" placeholder="INV-001">
+          </div>
+          <div class="form-group">
+            <label>Amount</label>
+            <input type="number" id="pakasir-amount" placeholder="10000">
+          </div>
+          <div class="form-group">
+            <label>API Key Pakasir</label>
+            <input type="text" id="pakasir-apikey" placeholder="api_key_pakasir">
+          </div>
+          <button class="btn btn-primary" onclick="createPakasir()">
+            <i class="fas fa-paper-plane"></i> Buat Transaksi
+          </button>
+          <div id="pakasir-result" style="margin-top:16px;font-size:14px;"></div>
+        </div>
+      </div>
 
-    <!-- Footer -->
-    <footer>
-      <p>© 2024 <strong>RAMZZPAY</strong> • Dibuat oleh <a href="https://github.com/ramzzgantengbanget">RAMZZGANTENGBANGET</a></p>
-    </footer>
+      <!-- ==================== PROFILE SECTION ==================== -->
+      <div id="section-profile" class="section">
+        <div class="card" style="max-width:500px;">
+          <h2>👤 Profile Akun</h2>
+          <div id="profile-content">
+            <p style="color:var(--muted);">Login dulu buat liat profile</p>
+          </div>
+          <button class="btn btn-danger" onclick="logout()" style="margin-top:16px;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+    </main>
   </div>
+
+  <script>
+    // =============================================
+    // CONFIG
+    // =============================================
+    const API_BASE = window.location.origin;
+    const API_KEY = 'rahasia_super_aman_123';
+
+    // =============================================
+    // PARTICLE BACKGROUND
+    // =============================================
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = [];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5 + 0.5,
+        dx: (Math.random() - 0.5) * 0.3,
+        dy: (Math.random() - 0.5) * 0.3
+      });
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.4)';
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // =============================================
+    // CLOCK
+    // =============================================
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('id-ID');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // =============================================
+    // TOAST
+    // =============================================
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + type;
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // =============================================
+    // NAVIGATION
+    // =============================================
+    function showSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+
+      const section = document.getElementById('section-' + name);
+      if (section) section.classList.add('active');
+
+      const navItem = document.getElementById('nav-' + name);
+      if (navItem) navItem.classList.add('active');
+
+      const titles = {
+        dashboard: 'Dashboard',
+        login: 'Login OTP',
+        mutasi: 'Mutasi QRIS',
+        qris: 'QR Generator',
+        pakasir: 'Pakasir',
+        profile: 'Profile'
+      };
+      document.getElementById('page-title').textContent = titles[name] || name;
+    }
+
+    // =============================================
+    // API CALLS
+    // =============================================
+    async function requestOTP() {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      const resultDiv = document.getElementById('login-result');
+
+      if (!username || !password) {
+        showToast('Username & password wajib!', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/orderkouta/get-otp?api_key=${API_KEY}&username=${username}&password=${password}`);
+        const data = await res.json();
+
+        if (data.status) {
+          resultDiv.innerHTML = '<span style="color:#10b981;">✅ ' + data.message + '</span>';
+          showToast('OTP Terkirim!', 'success');
+        } else {
+          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + data.message + '</span>';
+          showToast(data.message, 'error');
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek ke server</span>';
+        showToast('Gagal konek', 'error');
+      }
+    }
+
+    async function verifyOTP() {
+      const otp = document.getElementById('login-otp').value;
+      const resultDiv = document.getElementById('login-result');
+
+      if (!otp) {
+        showToast('Kode OTP wajib!', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/orderkouta/verify-otp?api_key=${API_KEY}&otp=${otp}`);
+        const data = await res.json();
+
+        if (data.status) {
+          resultDiv.innerHTML = '<span style="color:#10b981;">✅ Login sukses! Welcome, ' + (data.data?.name || 'User') + '</span>';
+          document.getElementById('login-status').textContent = 'Logged In';
+          document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
+          showToast('Login Berhasil!', 'success');
+          loadProfile();
+        } else {
+          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + data.message + '</span>';
+          showToast(data.message, 'error');
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek ke server</span>';
+      }
+    }
+
+    async function loadMutasi() {
+      const tableBody = document.getElementById('mutasi-table');
+      tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/orderkouta/mutasi?api_key=${API_KEY}&page=1`);
+        const data = await res.json();
+
+        if (data.status && data.data?.mutasi?.length > 0) {
+          tableBody.innerHTML = data.data.mutasi.map(m => `
+            <tr>
+              <td>${m.tanggal || '-'}</td>
+              <td><span class="amount in">Rp ${Number(m.jumlah || 0).toLocaleString()}</span></td>
+              <td>${m.keterangan || '-'}</td>
+              <td>✅ Sukses</td>
+            </tr>
+          `).join('');
+          document.getElementById('total-mutasi').textContent = data.data.mutasi.length;
+          document.getElementById('last-update').textContent = new Date().toLocaleTimeString('id-ID');
+        } else {
+          tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">Belum ada mutasi atau belum login</td></tr>';
+        }
+      } catch (err) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--red);">Gagal load data</td></tr>';
+      }
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(`${API_BASE}/api/orderkouta/profile?api_key=${API_KEY}`);
+        const data = await res.json();
+
+        if (data.status) {
+          document.getElementById('profile-content').innerHTML = `
+            <p><strong>Nama:</strong> ${data.data.name}</p>
+            <p><strong>User ID:</strong> ${data.data.user_id}</p>
+            <p><strong>Saldo:</strong> Rp ${Number(data.data.saldo || 0).toLocaleString()}</p>
+            <p><strong>Username:</strong> ${data.data.username}</p>
+          `;
+          document.getElementById('saldo-display').textContent = 'Rp ' + Number(data.data.saldo || 0).toLocaleString();
+        }
+      } catch (err) {}
+    }
+
+    async function logout() {
+      try {
+        await fetch(`${API_BASE}/api/orderkouta/logout?api_key=${API_KEY}`);
+        document.getElementById('login-status').textContent = 'Belum Login';
+        document.getElementById('profile-content').innerHTML = '<p style="color:var(--muted);">Login dulu buat liat profile</p>';
+        document.getElementById('saldo-display').textContent = 'Rp 0';
+        showToast('Logout berhasil!', 'success');
+      } catch (err) {}
+    }
+
+    async function createPakasir() {
+      const project = document.getElementById('pakasir-project').value;
+      const orderId = document.getElementById('pakasir-orderid').value;
+      const amount = document.getElementById('pakasir-amount').value;
+      const pakasirKey = document.getElementById('pakasir-apikey').value;
+      const resultDiv = document.getElementById('pakasir-result');
+
+      if (!project || !orderId || !amount || !pakasirKey) {
+        showToast('Semua field wajib!', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/pakasir/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+          body: JSON.stringify({ project, order_id: orderId, amount: Number(amount), pakasir_api_key: pakasirKey })
+        });
+        const data = await res.json();
+
+        if (data.status) {
+          resultDiv.innerHTML = '<span style="color:#10b981;">✅ Transaksi dibuat! Total: Rp ' + Number(data.data?.total_payment || 0).toLocaleString() + '</span>';
+          showToast('Transaksi Berhasil!', 'success');
+        } else {
+          resultDiv.innerHTML = '<span style="color:#ef4444;">❌ ' + (data.message || 'Gagal') + '</span>';
+        }
+      } catch (err) {
+        resultDiv.innerHTML = '<span style="color:#ef4444;">❌ Gagal konek</span>';
+      }
+    }
+
+    function generateQR() {
+      const nominal = document.getElementById('qris-nominal').value || 10000;
+      const qrisString = '00020101021226670016COM.QRIS.WWW011893600936000000000001234567890215' + nominal + '0303UMI51440014ID.CO.QRIS0123';
+      const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrisString)}`;
+
+      document.getElementById('qris-preview').innerHTML = `<img src="${qrURL}" alt="QRIS" style="width:200px;height:200px;">`;
+      document.getElementById('qris-preview').dataset.qris = qrisString;
+      showToast('QR Generated!', 'success');
+    }
+
+    function copyQRIS() {
+      const qris = document.getElementById('qris-preview').dataset.qris;
+      if (!qris) return showToast('Generate QR dulu!', 'error');
+      navigator.clipboard.writeText(qris).then(() => showToast('QRIS Copied!', 'success'));
+    }
+
+    function downloadQR() {
+      const img = document.querySelector('#qris-preview img');
+      if (!img) return showToast('Generate QR dulu!', 'error');
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = 'qris-ramzzpay.png';
+      a.click();
+      showToast('Download dimulai!', 'success');
+    }
+
+    // =============================================
+    // INIT
+    // =============================================
+    loadProfile();
+    loadMutasi();
+  </script>
 </body>
 </html>
